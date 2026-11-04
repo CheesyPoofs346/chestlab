@@ -35,7 +35,7 @@ From source: `python -m venv .venv`, `.venv\Scripts\pip install -r requirements.
 * Fortnite in Borderless / Windowed Fullscreen
 
 Accuracy: about 1 to 4 m depending on where you are; close to a chest the bearing can be several degrees off. Storms over the minimap can hide the map for a
-moment (the radar then coasts, dimmed). Only tested on one PC.
+moment (the radar then coasts, dimmed)
 
 ## Build the exe
 
