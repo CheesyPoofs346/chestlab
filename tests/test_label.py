@@ -36,30 +36,37 @@ class PlaceName(unittest.TestCase):
 
 
 class Compass(unittest.TestCase):
-    def test_a_misread_number_does_not_turn_the_heading_to_zero(self):
-        class Reader:                                                # what Windows OCR does with this strip: a confident "0"
+    def run_loop(self, reads, prior=78.0, loops=6):
+        """compass_loop over the lantern strip with an OCR that answers `reads` in turn; -> the heading filter's heading afterwards."""
+        class Reader:
+            def __init__(self):
+                self.i = 0
+
             def read(self, *a, **k):
-                return 0
+                v = reads[min(self.i, len(reads) - 1)]
+                self.i += 1
+                return v
         W = 2000
         frame = np.zeros((1125, W, 3), np.uint8)
         x0, y0, w, h = compass.region_px(W)
         frame[y0:y0 + h, x0:x0 + w] = STRIP
         hf = HeadingFilter()
         for i in range(8):
-            hf.update(0.1 * i, 78.0)
-        calls = []
-        stop = {"n": 0}
+            hf.update(0.1 * i, prior)
+        n = {"n": 0}
 
         def stopped():
-            stop["n"] += 1
-            return stop["n"] > 3
+            n["n"] += 1
+            return n["n"] > loops
         grab = lambda box: cv2.cvtColor(frame[box["top"]:box["top"] + box["height"], box["left"]:box["left"] + box["width"]], cv2.COLOR_BGR2BGRA)
-        compass_loop(grab, lambda: dict(left=0, top=0, width=W, height=1125), stopped, hf, Reader(), lambda *a: calls.append(a))
+        compass_loop(grab, lambda: dict(left=0, top=0, width=W, height=1125), stopped, hf, Reader(), lambda *a: None)
         import time
-        h = hf.at(time.perf_counter())
-        self.assertIsNotNone(h)
-        d = abs((h[0] - 78.0 + 180.0) % 360.0 - 180.0)
-        self.assertLess(d, 15.0, h)
+        return hf.at(time.perf_counter())[0]
+
+    def test_a_fast_turn_follows_the_number_not_the_label_comb(self):
+        for target in (108.0, 123.0, 138.0, 48.0):              # 30 / 45 / 60 degree flicks: the 15-degree label pattern looks the same after each
+            h = self.run_loop([int(target)] * 6)
+            self.assertLess(abs((h - target + 180.0) % 360.0 - 180.0), 3.0, (target, h))
 
 
 if __name__ == "__main__":
