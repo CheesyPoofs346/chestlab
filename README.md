@@ -17,12 +17,14 @@ From source: `python -m venv .venv`, `.venv\Scripts\pip install -r requirements.
 
 There are no key binds to learn. The same settings are on the **Settings** button of the start-up window and in the **ChestLab settings window**,
 which starts minimised in the taskbar (it never pops up over the game): radar position (right side by default, left, any corner), radar range and
-orientation, chests on the game's full map on/off, overlay refresh rate (60 / 90 / 120 / 144). The window also has the route, skip a chest, new match,
+orientation, chests on the game's full map on/off, overlay refresh rate (60 / 90 / 120 / 144). The window also has the route, skip a chest, back one chest, restart the route,
 hide the overlay and quit. Changes apply at once and are saved in `user/config.json`.
 
 The only keys it watches are the game's own: **M** and **Esc** for the full map, and **Shift** to go back to the radar when M was pressed by accident
 (while only *looking* for the map; once the map is found Shift stays the game's Reset).
 
+
+Chests are never hidden once you've opened them: they respawn after a few minutes, so every chest stays marked.
 
 ## Needs
 

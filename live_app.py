@@ -2,8 +2,8 @@
 A radar on the screen (ahead is up, the nearest chests at their exact bearing and distance, the range zooms in as you reach one).
 Pick a route in the window that opens at start-up (or `run.bat --route 3`, `--route "2 players"`, `--route none`): the radar then numbers
 that route's chests and draws a gold line through the next few; every other chest around you is still marked.
-There are no key binds to learn: every option (radar position and range, full-map chests on/off, refresh rate, route, skip a chest, new match,
-quit, calibration) is in the ChestLab settings window, which starts minimised in the taskbar. The only keys it watches are the game's own: M and Esc
+There are no key binds to learn: every option (radar position and range, full-map chests on/off, refresh rate, route, skip a chest, back one chest, new match,
+quit) is in the ChestLab settings window, which starts minimised in the taskbar. The only keys it watches are the game's own: M and Esc
 for the full map, and Shift to go back to the radar when M was pressed by accident. `--advanced` puts the match numbers on the status line.
 The overlay is a normal layered window: Snipping Tool, Print Screen and OBS all capture it."""
 import ctypes
@@ -228,7 +228,7 @@ def main(overlay=Overlay, grabber=MssGrabber(), hotkeys=True, rect=None, seconds
                 cfg["route"] = spec if spec not in ("0", "none", "off") else ""
                 save_config(cfg)
             else:
-                msg = {"skip": pipe.skip_route_chest, "back": pipe.back_route_chest, "new_match": pipe.reset_dug}[action]()
+                msg = {"skip": pipe.skip_route_chest, "back": pipe.back_route_chest, "new_match": pipe.new_match}[action]()
         say(msg)
         return msg
 
@@ -277,7 +277,7 @@ def main(overlay=Overlay, grabber=MssGrabber(), hotkeys=True, rect=None, seconds
                 st["fullmap"] = dict(M=fm["M"], items=pipe.map_items())
             if st["markers"] and st.get("yaw") is not None:
                 last_good[:] = [t0, {k: st[k] for k in ("markers", "yaw", "fov", "radar_m", "radar_up", "radar_at", "markers_3d", "sigma_m") if k in st}]
-            elif last_good and t0 - last_good[0] < 1.5 and not map_open:       # a short loss of the fix: keep the radar (dimmed), do not blink
+            elif last_good and t0 - last_good[0] < 3.0 and not map_open:       # a short loss of the fix: keep the radar (dimmed), do not blink
                 st.update(last_good[1])
                 st["stale"] = True
             tally["n"] += 1
@@ -320,7 +320,7 @@ def main(overlay=Overlay, grabber=MssGrabber(), hotkeys=True, rect=None, seconds
             fps.tick()
             if time.time() - last_state > 5 and eng.pose is not None:
                 last_state = time.time()
-                near = min((m for m in st["markers"] if not m["dug"] and "hd" in m), key=lambda m: m["hd"], default=None)      # the radar's nearest chest: bearing / metres
+                near = min((m for m in st["markers"] if "hd" in m), key=lambda m: m["hd"], default=None)      # the radar's nearest chest: bearing / metres
                 log("state locked=%s island=%s storm=%s pos=%s score=%.2f heading=%s src=%s ocr=%s markers=%d near=%s fps=%.0f render=%.1fms compass=%.0fHz map=%.0fHz" % (
                     st["locked"], st["on_island"], st["storm"], None if st["pos"] is None else tuple(round(v, 1) for v in st["pos"]), st["score"],
                     None if st["heading"] is None else round(st["heading"], 1), eng.heading_src,

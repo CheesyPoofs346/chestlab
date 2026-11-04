@@ -77,7 +77,6 @@ class Apply(unittest.TestCase):
     def test_scan_sets_the_active_spawns_and_keeps_learned_ones(self):
         self.p.world.chests = np.vstack([self.p.world.chests, [5.0, 5.0]])             # a learned spawn
         self.p.active = np.append(self.p.active, True)
-        self.p.dug = np.append(self.p.dug, False)
         self.p.kind = np.append(self.p.kind, "buried")
         self.p.chest_h = np.append(self.p.chest_h, 0.0)
         present = np.zeros(self.p.n_island, bool)
@@ -98,7 +97,7 @@ class Apply(unittest.TestCase):
     def test_new_match_resets_to_your_original_map(self):
         self.p.apply_scan(ScanResult(True, "x", np.ones(self.p.n_island, bool)))
         self.assertTrue(self.p.active[:self.p.n_island].all())
-        self.p.reset_dug()
+        self.p.new_match()
         self.assertTrue(np.array_equal(self.p.active, self.p.on_map))
 
 

@@ -101,6 +101,8 @@ class WorldFitter:
     TRIM_RAW, TRIM_ACQ = 0.48, 0.74                 # a match this weak is still taken when, with the worst-fitting fifth of the pixels left out, it is this good
     BIAS_PX = (-2.4, -6.9)                       # z4 px: this matcher minus the silhouette fitter over 12 clear real frames (the minimap draws
                                                  # terrain shadows, so its appearance sits ~3.7 m down-right of the silhouette); sd 0.5 m
+    GUIDED_MIN, GUIDED_PX = 0.40, 4.0            # while tracking: a weaker match still counts when its peak sits within this many tile px of where the tracker predicted (place names, pings, pins cover the map)
+    TEXT_PX, TEXT_PX_WIDE = 1, 9                 # white map text / icons: normal frames keep a thin mask (accuracy), a frame that found nothing and is full of text is tried again with a wide one                                  # dilation (minimap px) of the white-text mask: the outline of a place name sits within ~3 px of it
     ZSCALES = (0.95, 1.0, 0.90)                  # the minimap is not always drawn at exactly the same size (resized screenshots, other HUD scales)
     STORM_MODES = (True, False)                  # mask the storm (violet) or not: pink / purple trees look like storm to the colour test
     VARIANT_GAIN = 0.04                          # ...it only replaces the remembered variant when it scores this much higher
@@ -114,6 +116,7 @@ class WorldFitter:
         self.adaptive = False
         self.last_score = 0.0
         self.src = ""                            # which matcher gave the last fix ("island" / "world")
+        self.text_px = self.TEXT_PX
         self.zs, self.sx = 0.95, True             # the minimap size factor and storm mode that matched last
 
     # ---- observation: the minimap as a masked Lab template at a tile level
@@ -128,7 +131,9 @@ class WorldFitter:
         up = cv2.resize(minimap, None, fx=s, fy=s, interpolation=interp)
         H, W = up.shape[:2]
         hsv = cv2.cvtColor(minimap, cv2.COLOR_BGR2HSV)
-        bad = ((hsv[..., 1] < 45) & (hsv[..., 2] > 190)) | ((hsv[..., 0] >= 158) & (hsv[..., 1] > 110) & (hsv[..., 2] > 150))
+        text = ((hsv[..., 1] < 45) & (hsv[..., 2] > 190)).astype(np.uint8)              # white map text / icons: they come with a thick dark outline, mask that too
+        text = cv2.dilate(text, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (self.text_px, self.text_px)))
+        bad = (text > 0) | ((hsv[..., 0] >= 158) & (hsv[..., 1] > 110) & (hsv[..., 2] > 150))
         bad |= (hsv[..., 0] >= 104) & (hsv[..., 0] <= 125) & (hsv[..., 1] >= 170) & (hsv[..., 2] >= 170)       # the blue pins and arrows drawn on the minimap (your own marker, pings): water is teal, not this blue
         k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
         if sx and fr >= 0.02:
@@ -226,6 +231,18 @@ class WorldFitter:
         return cands
 
     def acquire(self, minimap, variants=None):
+        fit = self._acquire(minimap, variants)
+        if fit is None and self.TEXT_PX_WIDE != self.TEXT_PX:
+            hsv = cv2.cvtColor(minimap, cv2.COLOR_BGR2HSV)
+            if float(((hsv[..., 1] < 45) & (hsv[..., 2] > 190)).mean()) >= 0.03:      # a place name across the map: look again with its outline masked too
+                self.text_px = self.TEXT_PX_WIDE
+                try:
+                    fit = self._acquire(minimap, variants)
+                finally:
+                    self.text_px = self.TEXT_PX
+        return fit
+
+    def _acquire(self, minimap, variants=None):
         self.last_score = 0.0
         best_v, cands = None, []
         for v in (variants or self._variants(minimap)):
@@ -329,6 +346,8 @@ class WorldFitter:
             self.last_score = max(self.last_score, s)
             if self.LOCAL_TRIM_RAW <= s < self.MIN_SCORE and self._trimmed(obs, lv, x, y) >= self.LOCAL_TRIM:
                 s = self.MIN_SCORE                                         # icons on the minimap (pings, the bus, route lines) pulled the score down; the rest fits
+            if self.GUIDED_MIN <= s < self.MIN_SCORE and np.hypot(x - c[0], y - c[1]) <= self.GUIDED_PX:
+                s = self.MIN_SCORE                                         # covered, but exactly where we expected it
             if s >= self.MIN_SCORE:
                 self.fails = 0
                 return self._fit_from((s, x, y), minimap, obs[3])

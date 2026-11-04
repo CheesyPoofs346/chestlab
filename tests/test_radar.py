@@ -63,10 +63,6 @@ class Radar(unittest.TestCase):
         base = int(dial_window(draw([]))[..., 3].sum())
         self.assertEqual(int(dial_window(draw([marker(90, 95)]))[..., 3].sum()), base)
 
-    def test_a_dug_chest_is_not_on_the_radar(self):
-        base = draw([])
-        self.assertTrue(np.array_equal(draw([dict(marker(90, 30), dug=True)]), base))
-
     def test_the_facing_arrow_and_view_wedge_turn_with_you(self):
         a, b = draw([], yaw=0.0), draw([], yaw=90.0)
         self.assertFalse(np.array_equal(a, b))

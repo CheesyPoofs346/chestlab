@@ -353,7 +353,7 @@ class Tracker:
         return 0 <= i < self.land.shape[0] and 0 <= j < self.land.shape[1] and bool(self.land[i, j])
 
     COAST_FRAMES, RESET_FRAMES = 20, 45      # missed fits: keep predicting for ~0.7 s, forget after ~1.5 s
-    COAST_S, RESET_S = 1.5, 4.0              # ... but when the sensor runs slowly (a full-map search per frame) it is time that counts, not frames
+    COAST_S, RESET_S = 2.5, 5.0              # ... but when the sensor runs slowly (a full-map search per frame) it is time that counts, not frames
     COAST_STORM_S, RESET_STORM_S = 4.0, 9.0  # a storm over the minimap hides the map for a while: keep predicting longer (the fixes come back when it clears or the view changes)
     STORM_FRAC = 0.15
     VERIFY_S = 1.5                           # with a lock held, look at the whole map this often (fitters that have verify()); two looks that agree move the lock

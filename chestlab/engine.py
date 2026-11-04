@@ -75,11 +75,18 @@ def compass_loop(grab, get_mon, stopped, hf, reader, on_cycle, log=lambda m: Non
             geo = dict(s=mon["width"] / 2000.0, ox=x0, oy=y0)
             prior = hf.prior(t)
             n = reader.read(reg, tries=2 if prior is not None else None, **geo)
+            wrap = lambda a: (a - prior + 180.0) % 360.0 - 180.0
+            bar_used = False
+            if n is not None and prior is not None and abs(wrap(n)) > 25.0:
+                est = bar.estimate(reg, prior, **geo)                  # a number far from where we were heading: white digits on a bright lantern read as 0, so the bar's labels decide
+                if est[1] >= BAR_MIN_QUALITY and abs(wrap(est[0])) < 12.0:
+                    n, bar_used = None, hf.update(t, est[0], BAR_SIGMA, gate=12.0)
+                    src = "bar" if bar_used else src
             if n is not None:
                 ocr = n
                 hf.update(t, n, OCR_SIGMA)
                 src = "number"
-            elif prior is not None:
+            elif prior is not None and not bar_used:
                 est = bar.estimate(reg, prior, **geo)
                 if est[1] >= BAR_MIN_QUALITY and hf.update(t, est[0], BAR_SIGMA, gate=6.0):
                     src = "bar"

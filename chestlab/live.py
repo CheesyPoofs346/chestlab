@@ -8,7 +8,6 @@ import time
 import cv2
 import numpy as np
 
-from .calib import ChestRecorder
 from .compass import CompassReader
 from .estimate import Tracker
 from .geometry import Camera, wrap180
@@ -18,13 +17,13 @@ from . import worldmap
 from .paths import APP, BASE as ROOT
 USER = os.path.join(APP, "user")
 CONFIG, CHESTS = os.path.join(USER, "config.json"), os.path.join(USER, "chests.json")
-LEARNED = os.path.join(USER, "learned.json")   # spawns you dug that the built-in map doesn't have
+LEARNED = os.path.join(USER, "learned.json")   # spawns found earlier that the built-in map doesn't have
 SPAWNS = os.path.join(ROOT, "assets", "spawns.json")   # every buried-chest spawn on the island (tools/build_spawns.py)
 HEIGHTS = os.path.join(USER, "heights.json")   # per chest (built-in ones, then learned ones): metres above the island's ground level
 SURE_KINDS = ('chest_sure', 'rare', 'sprite')   # world chests known to exist (100% spawn rate, or special); the others may not
 ROUTE_LOOKAHEAD = 3                            # route mode marks this many chests ahead (the next one and the two after)
 ROUTE_REACH_M = 2.5                            # a route chest counts as opened when you are this close
-MERGE_PX = 30.0                                # a new dig within this many map px (~2.5 m) of a known spawn is the same spawn
+MERGE_PX = 30.0                                # a learned spawn within this many map px (~2.5 m) of a built-in one is the same spawn
 MINIMAP_BOX = (1786, 22, 1980, 214)   # in a 2000-px-wide frame; scaled by frame width
 
 DEFAULTS = dict(mpp=0.0875, fov=78.0, yaw_off=0.0, v_off=0.0, pitch=-3.5, chest_z=0.4, dig_radius_m=15.0,
@@ -95,15 +94,13 @@ class Pipeline:
         self.active = self.on_map.copy()             # spawns that exist in this match: your map's icons, until the game map says otherwise
         self.chest_h = self._load_heights(len(self.world.chests))
         self.floor = 0                               # which storey you are on (you set it: no game HUD shows altitude)
-        self.rec = ChestRecorder(self.world.chests)
-        self.dug = np.zeros(len(self.world.chests), bool)
         self.tracker = worldmap.WorldTracker(self.world) if self.use_world else Tracker(self.world)
         self.routes = self._load_routes()            # best chest-farming routes (tools/make_routes.py); F12 picks one
         self.route = None                            # index into self.routes, None = no route: every chest is marked
         self.route_i = 0                             # next chest of the route you still have to open
         self.reader = reader or CompassReader()
         self.compass, self.compass_t = None, -1e9
-        self.recent = collections.deque(maxlen=30)   # last raw position fixes, for recording a chest
+        self.recent = collections.deque(maxlen=30)   # last raw position fixes
         self.live_pos = None                         # where the live engine says the player is right now (map px)
         self.state = dict(locked=False, on_island=False, pos=None, heading=None, markers=[])
 
@@ -168,7 +165,6 @@ class Pipeline:
                 return "no route number %s" % spec
         self.route, self.route_i = i, 0
         r = self.routes[i]
-        self.dug[r["idx"]] = False
         return "route %s: %d chests, about %.0f s a run (%.1f chests/min). Go to chest 1." % (r["name"], len(r["idx"]), r["seconds"], r["per_min"])
 
     def skip_route_chest(self):
@@ -178,7 +174,6 @@ class Pipeline:
         idx = self.routes[self.route]["idx"]
         if self.route_i >= len(idx):
             return "the route is finished"
-        self.dug[idx[self.route_i]] = True
         self.route_i += 1
         return "skipped: on to chest %d of %d" % (min(self.route_i + 1, len(idx)), len(idx))
 
@@ -247,7 +242,7 @@ class Pipeline:
 
     def map_items(self):
         """What the full-map overlay draws, in fortnite.gg's z4 map pixels (the full map's own coordinates): per chest its position, kind,
-        whether it is a sure spawn, whether you dug it, and (route mode) its step number; plus the next route chest."""
+        whether it is a sure spawn, and (route mode) its step number; plus the next route chest."""
         n = len(self.world.chests)
         pad = lambda a, fill: np.append(a, [fill] * max(0, n - len(a)))[:n]
         step = np.zeros(n, int)
@@ -257,7 +252,7 @@ class Pipeline:
             step[ridx] = np.arange(1, len(ridx) + 1)
             nxt = ridx[self.route_i] if self.route_i < len(ridx) else -1
         return dict(xy=worldmap.uv_to_px(self.world.chests, 4), kind=pad(self.kind, "buried"), sure=pad(self.active, True).astype(bool),
-                    dug=pad(self.dug, False).astype(bool), step=step, next=nxt)
+                    step=step, next=nxt)
 
     def project(self, W, H, pos, heading):
         """Per chest: ground point, a ring on the ground (perspective-correct), the top of a beacon pillar, distance,
@@ -307,10 +302,6 @@ class Pipeline:
         k2 = min(len(act), len(self.active))
         act[:k2] = self.active[:k2]
         act = act[idx]
-        dug = np.zeros(len(self.world.chests), bool)
-        k3 = min(len(dug), len(self.dug))
-        dug[:k3] = self.dug[:k3]
-        dug = dug[idx]
         kind = np.append(self.kind, ["buried"] * max(0, len(self.world.chests) - len(self.kind)))[idx]
         brg = np.degrees(np.arctan2(chests[:, 0] - pos[0], -(chests[:, 1] - pos[1]))) % 360
         rel = wrap180(brg - yaw)
@@ -319,8 +310,8 @@ class Pipeline:
         return [dict(id=int(idx[i]) + 1, x=float(xy[i, 0]), y=float(xy[i, 1]), top=(float(xy[n + i, 0]), float(xy[n + i, 1])),
                      ring=ring_xy[i].tolist() if ring_ok[i] else None, dist=float(d[i]), dz=float(dz[i]), rel=float(rel[i]),
                      brg=float(brg[i]), hd=float(d2[idx[i]]),           # compass bearing and flat distance (m): what the radar plots
-                     front=bool(ok[i]), dug=bool(dug[i]), sure=bool(act[i]) or int(idx[i]) in step, kind=str(kind[i]),
-                     show=(step.get(int(idx[i]), 0) in upcoming) if int(idx[i]) in step else bool(d[i] <= (c["show_m"] if act[i] else c["maybe_m"])),
+                     front=bool(ok[i]), sure=bool(act[i]) or int(idx[i]) in step, kind=str(kind[i]),
+                     show=(step.get(int(idx[i]), 0) in upcoming) if step.get(int(idx[i]), 0) > self.route_i else bool(d[i] <= (c["show_m"] if act[i] else c["maybe_m"])),
                      step=step.get(int(idx[i]), 0), next=int(idx[i]) == nxt) for i in range(n)]
 
     def cycle_route(self):
@@ -332,7 +323,6 @@ class Pipeline:
         if self.route is None:
             return "route off: every chest is marked"
         r = self.routes[self.route]
-        self.dug[r["idx"]] = False
         return "route %s: %d chests, about %.0f s a run (%.1f chests/min). Go to chest 1." % (r["name"], len(r["idx"]), r["seconds"], r["per_min"])
 
     def route_text(self):
@@ -342,13 +332,12 @@ class Pipeline:
         return "route %s %d/%d" % (self.routes[self.route]["name"], min(self.route_i, n), n) + (" done: leave and rejoin" if self.route_i >= n else "")
 
     def _route_progress(self, pos):
-        """You reached the next chest of the route (within 2.5 m, or you marked it dug) -> on to the following one."""
+        """You reached the next chest of the route (within 2.5 m) -> on to the following one."""
         idx = self.routes[self.route]["idx"]
         while self.route_i < len(idx):
             i = idx[self.route_i]
-            if not self.dug[i] and np.hypot(*(self.world.chests[i] - np.asarray(pos))) * self.world.mpp > ROUTE_REACH_M:
+            if np.hypot(*(self.world.chests[i] - np.asarray(pos))) * self.world.mpp > ROUTE_REACH_M:
                 break
-            self.dug[i] = True
             self.route_i += 1
 
     def change_floor(self, delta):
@@ -360,79 +349,9 @@ class Pipeline:
     def _pos(self):
         return self.live_pos if self.live_pos is not None else self.tracker.filt.pos
 
-    def nearest(self, max_m=None):
-        pos = self._pos()
-        if pos is None:
-            return None, None
-        d = np.hypot(*(self.world.chests - np.asarray(pos)).T) * self.world.mpp
-        d[self.dug] = np.inf
-        i = int(np.argmin(d))
-        return (i, float(d[i])) if np.isfinite(d[i]) and (max_m is None or d[i] <= max_m) else (None, None)
-
-    def dig(self):
-        """F7: you're standing on a chest you just dug up. Hide it, and move it to where you really are."""
-        i, d = self.nearest(self.cfg["dig_radius_m"])
-        fixed = len(self.recent) >= 5
-        if i is None:
-            if not fixed:
-                return "no chest within %.0f m (and storm: can't place a new one)" % self.cfg["dig_radius_m"]
-            return self._learn_spawn()
-        if fixed:
-            self.rec.press(i, list(self.recent)[-15:])
-            self.world.chests = self.rec.chests
-        self.chest_h[i] = self.player_z              # you are standing on it: its height is yours
-        self.active[i] = True
-        self._save_chests()
-        self.dug[i] = True
-        return "chest #%d dug (was %.1f m away)%s%s" % (i + 1, d, "; position corrected" if fixed else "; storm: position left as is",
-                                                        "; height %+.0f m" % self.player_z if self.player_z else "")
-
-    def _save_chests(self):
-        os.makedirs(USER, exist_ok=True)
-        with open(CHESTS, "w", encoding="utf-8") as f:
-            json.dump(self.rec.chests[:self.n_base].tolist(), f)
-        with open(LEARNED, "w", encoding="utf-8") as f:
-            json.dump(self.rec.chests[self.n_base:].tolist(), f)
-        with open(HEIGHTS, "w", encoding="utf-8") as f:
-            json.dump([round(float(v), 2) for v in self.chest_h], f)
-
-    def _learn_spawn(self):
-        """F7 with no known chest nearby: this island has a spawn the map lacks. Remember it for later matches."""
-        est = np.median(np.asarray(list(self.recent)[-15:], float), axis=0)
-        near = np.hypot(*(self.rec.chests - est).T) < MERGE_PX
-        if near.any():                        # already known (and dug earlier this match): just average it in
-            j = int(np.argmin(np.hypot(*(self.rec.chests - est).T)))
-            self.rec.press(j, list(self.recent)[-15:])
-            msg = "chest #%d re-recorded" % (j + 1)
-        else:
-            self.rec.chests = np.vstack([self.rec.chests, est])
-            self.rec.n = np.append(self.rec.n, 1)
-            self.dug = np.append(self.dug, False)
-            self.chest_h = np.append(self.chest_h, self.player_z)
-            self.on_map = np.append(self.on_map, True)
-            self.active = np.append(self.active, True)
-            self.kind = np.append(self.kind, "buried")
-            j = len(self.rec.chests) - 1
-            msg = "NEW spawn learned as #%d (%d known now)" % (j + 1, j + 1)
-        msg += "; height %+.0f m" % self.player_z if self.player_z else ""
-        self.world.chests = self.rec.chests
-        self.dug[j] = True
-        self.chest_h[j] = self.player_z
-        self._save_chests()
-        return msg
-
-    def undo_dig(self):
-        pos = self._pos()
-        gone = np.nonzero(self.dug)[0]
-        if not len(gone):
-            return "nothing to undo"
-        j = int(gone[np.argmin(np.hypot(*(self.world.chests[gone] - np.asarray(pos)).T))]) if pos else int(gone[-1])
-        self.dug[j] = False
-        return "chest #%d back" % (j + 1)
-
     def apply_scan(self, res):
         """Take a mapscan.ScanResult (the full in-game map, read with F11): which of the base spawns exist this match. Spawns you
-        learned yourself keep their state, dug chests stay dug."""
+        learned yourself keep their state."""
         if not res.ok or res.present is None or len(res.present) != self.n_island:
             return res.message
         self.active[:self.n_island] = res.present
@@ -446,12 +365,12 @@ class Pipeline:
         if self.route_i <= 0:
             return "already at chest 1"
         self.route_i -= 1
-        self.dug[self.routes[self.route]["idx"][self.route_i]] = False
         return "back to chest %d of %d" % (self.route_i + 1, len(self.routes[self.route]["idx"]))
 
-    def reset_dug(self):
-        self.dug[:] = False
+    def new_match(self):
+        """A new match: the route starts again from chest 1, the floor is the ground, the spawn list is the built-in one. (Opened chests are not
+        tracked at all: they respawn after a few minutes, so every chest is always marked.)"""
         self.active = self.on_map.copy()
         self.floor = 0
         self.route_i = 0
-        return "all chests back (new match)"
+        return "new match: route restarts from chest 1"

@@ -481,7 +481,7 @@ class Hud:
         yaw = st["yaw"]
         rot = yaw if st.get("radar_up", True) else 0.0                                    # the bearing that points up
         lay = np.zeros((n, n, 4), np.float32)
-        live = [m for m in st["markers"] if not m["dug"] and "hd" in m]
+        live = [m for m in st["markers"] if "hd" in m]
         sure = [m for m in live if m.get("sure", True)]
         hot = next((m for m in live if m.get("next")), None) or min(sure, key=lambda m: m["hd"], default=None)
         rm = self._range(RADAR_LEVELS[2] if hot is None else hot["hd"], st, t)           # the range holds the target: close in, the radar is zoomed in
@@ -582,7 +582,7 @@ class Hud:
         sc = float(np.hypot(M[0, 0], M[1, 0]))
         xy = it["xy"] @ M[:, :2].T + M[:, 2]
         pad = 30
-        vis = (xy[:, 0] > -pad) & (xy[:, 0] < W + pad) & (xy[:, 1] > -pad) & (xy[:, 1] < H + pad) & ~it["dug"]
+        vis = (xy[:, 0] > -pad) & (xy[:, 0] < W + pad) & (xy[:, 1] > -pad) & (xy[:, 1] < H + pad)
         route = bool(it["step"].any())
         isz = int(round(min(max(9 + 20 * sc, 12), 32) * u))
         cell = max(4, int(isz * 0.95))
@@ -709,7 +709,7 @@ class Hud:
             return
         edge, vert, on_screen = [], [], []
         for m in (st["markers"] if st.get("markers_3d", True) else ()):        # radar-only mode: nothing is drawn over the world
-            if m["dug"] or not m.get("show", True):
+            if not m.get("show", True):
                 continue
             x_ok = m["front"] and (-80 <= m["x"] <= W + 80 or -80 <= m["top"][0] <= W + 80)
             lo, hi = min(m["y"], m["top"][1]), max(m["y"], m["top"][1])

@@ -125,7 +125,6 @@ class Overlay(unittest.TestCase):
         first = self.p.routes[self.p.route]["idx"][0]
         self.assertIn("skipped", self.p.skip_route_chest())
         self.assertEqual(self.p.route_i, 1)
-        self.assertTrue(self.p.dug[first])
         self.assertIn("off", self.p.select_route("none"))
         self.assertIsNone(self.p.route)
         self.assertEqual(self.p.skip_route_chest(), "no route is on")
@@ -164,8 +163,7 @@ class Overlay(unittest.TestCase):
         r = self.p.routes[0]
         start = tuple(self.p.world.chests[r["idx"][0]] + [200.0, 0.0])
         ms = self.p.project(1600, 900, start, 270.0)
-        live = [m for m in ms if not m["dug"]]
-        self.assertTrue(any(not m["step"] and m["hd"] <= 60 for m in live))
+        self.assertTrue(any(not m["step"] and m["hd"] <= 60 for m in ms))
         hud, cv = Hud(1600, 900), np.zeros((900, 1600, 4), np.uint8)
         hud.render(cv, dict(markers=ms, yaw=270.0, fov=80.0, radar_m=0.0, radar_up=True, radar_at="default", markers_3d=False), "", hex_bgr("#3dff8a"), "", t=0.1)
         self.assertGreater(int(cv[..., 3].sum()), 0)
@@ -174,12 +172,10 @@ class Overlay(unittest.TestCase):
         self.assertEqual(self.p.back_route_chest(), "no route is on")
         self.p.select_route(1)
         self.assertEqual(self.p.back_route_chest(), "already at chest 1")
-        first = self.p.routes[self.p.route]["idx"][0]
         self.p.skip_route_chest()
-        self.assertTrue(self.p.dug[first])
+        self.assertEqual(self.p.route_i, 1)
         self.assertIn("back to chest 1", self.p.back_route_chest())
         self.assertEqual(self.p.route_i, 0)
-        self.assertFalse(self.p.dug[first])
 
     def test_walking_to_the_chests_advances_the_route(self):
         self.p.cycle_route()
@@ -190,7 +186,8 @@ class Overlay(unittest.TestCase):
         self.assertIn("done", self.p.route_text())
         ms = self.p.project(1600, 900, tuple(self.p.world.chests[r["idx"][-1]]), 0.0)
         self.assertFalse(any(m["next"] for m in ms))
-        self.p.reset_dug()
+        self.assertTrue(any(m["id"] == r["idx"][-1] + 1 and m["show"] for m in ms))          # chests respawn: the one you just opened is still marked
+        self.p.new_match()
         self.assertEqual(self.p.route_i, 0)
 
     def test_far_next_chest_is_still_listed_for_the_edge_arrow(self):

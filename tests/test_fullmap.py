@@ -266,19 +266,6 @@ class Drawing(unittest.TestCase):
             self.render(T)
         self.assertLess((time.perf_counter() - t0) / 5, 0.25)
 
-    def test_dug_chest_is_not_drawn(self):
-        T = cam(3.0, 2400, 1900)
-        cv, it = self.render(T)
-        xy = it["xy"] @ T[:, :2].T + T[:, 2]
-        i = int(np.argmin(np.hypot(*(xy - [W / 2, H / 2]).T)))
-        self.assertTrue(cv[int(xy[i, 1]) - 3:int(xy[i, 1]) + 4, int(xy[i, 0]) - 3:int(xy[i, 0]) + 4, 3].any())
-        self.pipe.dug[i] = True
-        try:
-            cv2_, _ = self.render(T)
-        finally:
-            self.pipe.dug[i] = False
-        self.assertFalse(cv2_[int(xy[i, 1]) - 3:int(xy[i, 1]) + 4, int(xy[i, 0]) - 3:int(xy[i, 0]) + 4, 3].any())
-
     def test_route_mode_numbers_and_line(self):
         self.assertTrue(self.pipe.routes)
         cv_off, _ = self.render(cam(0.4, 2048, 2048))
