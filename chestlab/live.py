@@ -276,13 +276,13 @@ class Pipeline:
         idx = np.nonzero(d2 <= reach)[0]                                                 # the whole map has ~1000 chests: only the near ones
         step = {}
         nxt, upcoming = -1, ()
-        if self.route is not None:                       # route mode: only the route's chests, numbered; the next one is always there
+        if self.route is not None:                       # route mode: every chest near you stays; the route's are numbered, and the next one is always there
             ridx = self.routes[self.route]["idx"]
             self._route_progress(pos)
             step = {i: k + 1 for k, i in enumerate(ridx)}
             nxt = ridx[self.route_i] if self.route_i < len(ridx) else -1
             upcoming = range(self.route_i + 1, self.route_i + 1 + ROUTE_LOOKAHEAD)       # only the next few, numbered: a tight cluster would be a wall of markers
-            idx = np.union1d(idx[np.isin(idx, ridx)], [nxt] if nxt >= 0 else []).astype(int)
+            idx = np.union1d(idx, [nxt] if nxt >= 0 else []).astype(int)
         if not len(idx):
             return []
         chests = self.world.chests[idx]
@@ -320,7 +320,7 @@ class Pipeline:
                      ring=ring_xy[i].tolist() if ring_ok[i] else None, dist=float(d[i]), dz=float(dz[i]), rel=float(rel[i]),
                      brg=float(brg[i]), hd=float(d2[idx[i]]),           # compass bearing and flat distance (m): what the radar plots
                      front=bool(ok[i]), dug=bool(dug[i]), sure=bool(act[i]) or int(idx[i]) in step, kind=str(kind[i]),
-                     show=(bool(d[i] <= (c["show_m"] if act[i] else c["maybe_m"])) if not step else step.get(int(idx[i]), 0) in upcoming),
+                     show=(step.get(int(idx[i]), 0) in upcoming) if int(idx[i]) in step else bool(d[i] <= (c["show_m"] if act[i] else c["maybe_m"])),
                      step=step.get(int(idx[i]), 0), next=int(idx[i]) == nxt) for i in range(n)]
 
     def cycle_route(self):
@@ -438,6 +438,16 @@ class Pipeline:
         self.active[:self.n_island] = res.present
         ids = " ".join("#%d" % (i + 1) for i in np.nonzero(res.present)[0])
         return "%s: %s" % (res.message, ids)
+
+    def back_route_chest(self):
+        """Undo a skip (or a chest passed by mistake): the previous route chest is the next one again."""
+        if self.route is None:
+            return "no route is on"
+        if self.route_i <= 0:
+            return "already at chest 1"
+        self.route_i -= 1
+        self.dug[self.routes[self.route]["idx"][self.route_i]] = False
+        return "back to chest %d of %d" % (self.route_i + 1, len(self.routes[self.route]["idx"]))
 
     def reset_dug(self):
         self.dug[:] = False

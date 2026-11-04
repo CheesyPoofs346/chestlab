@@ -146,16 +146,40 @@ class Overlay(unittest.TestCase):
         self.assertEqual(seen[-1], "route off: every chest is marked")
         self.assertIsNone(self.p.route)
 
-    def test_route_mode_marks_only_the_route_numbered_with_one_next(self):
+    def test_route_mode_numbers_the_route_and_still_marks_every_other_chest(self):
         self.p.cycle_route()
         r = self.p.routes[0]
         start = tuple(self.p.world.chests[r["idx"][0]] + [200.0, 0.0])      # 17 m east of the first chest
         ms = self.p.project(1600, 900, start, 270.0)
-        self.assertTrue(ms and all(m["step"] > 0 for m in ms if m["show"]))                # nothing but route chests
         self.assertEqual(sum(m["next"] for m in ms), 1)
-        self.assertEqual(sorted(m["step"] for m in ms if m["show"]), [1, 2, 3])        # the next three only
+        self.assertEqual(sorted(m["step"] for m in ms if m["step"] and m["show"]), [1, 2, 3])        # the next three route chests are numbered
+        others = [m for m in ms if not m["step"]]
+        self.assertTrue(others)                                                       # ... and the other chests around you are still there
+        self.assertTrue(any(m["show"] for m in others))                               # (drawn by the normal show distance, not hidden)
         nxt = next(m for m in ms if m["next"])
         self.assertEqual(nxt["step"], 1)
+
+    def test_the_radar_draws_the_other_chests_in_route_mode(self):
+        self.p.cycle_route()
+        r = self.p.routes[0]
+        start = tuple(self.p.world.chests[r["idx"][0]] + [200.0, 0.0])
+        ms = self.p.project(1600, 900, start, 270.0)
+        live = [m for m in ms if not m["dug"]]
+        self.assertTrue(any(not m["step"] and m["hd"] <= 60 for m in live))
+        hud, cv = Hud(1600, 900), np.zeros((900, 1600, 4), np.uint8)
+        hud.render(cv, dict(markers=ms, yaw=270.0, fov=80.0, radar_m=0.0, radar_up=True, radar_at="default", markers_3d=False), "", hex_bgr("#3dff8a"), "", t=0.1)
+        self.assertGreater(int(cv[..., 3].sum()), 0)
+
+    def test_back_undoes_a_skip(self):
+        self.assertEqual(self.p.back_route_chest(), "no route is on")
+        self.p.select_route(1)
+        self.assertEqual(self.p.back_route_chest(), "already at chest 1")
+        first = self.p.routes[self.p.route]["idx"][0]
+        self.p.skip_route_chest()
+        self.assertTrue(self.p.dug[first])
+        self.assertIn("back to chest 1", self.p.back_route_chest())
+        self.assertEqual(self.p.route_i, 0)
+        self.assertFalse(self.p.dug[first])
 
     def test_walking_to_the_chests_advances_the_route(self):
         self.p.cycle_route()

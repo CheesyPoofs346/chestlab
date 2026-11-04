@@ -1,7 +1,7 @@
 """Chest overlay for the whole map (every chest of the fortnite.gg list). Run via run.bat while Fortnite is in borderless / windowed-fullscreen.
 A radar on the screen (ahead is up, the nearest chests at their exact bearing and distance, the range zooms in as you reach one).
-Pick a route in the window that opens at start-up (or `run.bat --route 3`, `--route "2 players"`, `--route none`): the radar then shows only
-that route's chests, with a gold line through the next few.
+Pick a route in the window that opens at start-up (or `run.bat --route 3`, `--route "2 players"`, `--route none`): the radar then numbers
+that route's chests and draws a gold line through the next few; every other chest around you is still marked.
 There are no key binds to learn: every option (radar position and range, full-map chests on/off, refresh rate, route, skip a chest, new match,
 quit, calibration) is in the ChestLab settings window, which starts minimised in the taskbar. The only keys it watches are the game's own: M and Esc
 for the full map, and Shift to go back to the radar when M was pressed by accident. `--advanced` puts the match numbers on the status line.
@@ -228,7 +228,7 @@ def main(overlay=Overlay, grabber=MssGrabber(), hotkeys=True, rect=None, seconds
                 cfg["route"] = spec if spec not in ("0", "none", "off") else ""
                 save_config(cfg)
             else:
-                msg = {"skip": pipe.skip_route_chest, "new_match": pipe.reset_dug}[action]()
+                msg = {"skip": pipe.skip_route_chest, "back": pipe.back_route_chest, "new_match": pipe.reset_dug}[action]()
         say(msg)
         return msg
 

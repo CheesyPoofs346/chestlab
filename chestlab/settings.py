@@ -11,7 +11,8 @@ from tkinter import ttk
 
 from .options import FPS, FULLMAP, RADAR_AT, RADAR_M, RADAR_UP, label_of, value_of
 
-ACTIONS = [("skip", "Skip the next route chest (it is not there)"), ("new_match", "New match: forget which chests I opened"),
+ACTIONS = [("skip", "Skip the next route chest (it is not there)"), ("back", "Back one route chest (undo a skip)"),
+           ("new_match", "New match: forget which chests I opened"),
            ("hide", "Hide / show the overlay")]
 
 
