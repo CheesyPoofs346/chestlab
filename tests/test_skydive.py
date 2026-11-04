@@ -224,3 +224,19 @@ class StopReleasesAtOnce(unittest.TestCase):
         self.assertTrue(w.holding)                     # M just pressed, map not found yet
         w.stop()                                       # Shift: back to the radar
         self.assertFalse(w.holding)
+
+
+class HalfStorm(unittest.TestCase):
+    """A storm over a third of the minimap, a big place-name label over the top, a blue ping pin and your own marker over the land: it still locks
+    (it did not: the blue pins read as water and the best match scored 0.50, just under the threshold)."""
+
+    def test_locks_on_a_half_stormed_minimap_with_labels_and_pins(self):
+        img = cv2.imread(os.path.join(ROOT, "tests", "data", "gameplay_halfstorm.webp"))
+        pipe = live.Pipeline(dict(live.DEFAULTS))
+        s = img.shape[1] / 2000.0
+        x0, y0, x1, y1 = (int(round(v * s)) for v in live.MINIMAP_BOX)
+        mm = live.crop_minimap(img[y0:y1, x0:x1], s=s, ox=x0, oy=y0)
+        for _ in range(3):
+            r = pipe.step_minimap(mm, 0.03)
+        self.assertTrue(r["locked"])
+        self.assertLess(abs(r["pos"][0] + 5440) + abs(r["pos"][1] - 4850), 120)       # the river bend of Boot Lagoon (read off the reference map)

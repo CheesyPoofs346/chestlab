@@ -129,6 +129,7 @@ class WorldFitter:
         H, W = up.shape[:2]
         hsv = cv2.cvtColor(minimap, cv2.COLOR_BGR2HSV)
         bad = ((hsv[..., 1] < 45) & (hsv[..., 2] > 190)) | ((hsv[..., 0] >= 158) & (hsv[..., 1] > 110) & (hsv[..., 2] > 150))
+        bad |= (hsv[..., 0] >= 104) & (hsv[..., 0] <= 125) & (hsv[..., 1] >= 170) & (hsv[..., 2] >= 170)       # the blue pins and arrows drawn on the minimap (your own marker, pings): water is teal, not this blue
         k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
         if sx and fr >= 0.02:
             edge = (cv2.dilate(storm.astype(np.uint8), k) - cv2.erode(storm.astype(np.uint8), k)) > 0

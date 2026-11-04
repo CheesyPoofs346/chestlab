@@ -2,7 +2,7 @@
 A radar on the right of the screen (F1 moves it: left / corners) (ahead is up, the nearest chests at their exact bearing and distance, the range zooms in as you reach one).
 Pick a route in the window that opens at start-up (or `run.bat --route 3`, `--route "2 players"`, `--route none`): the radar then shows only
 that route's chests, with a gold line through the next few.
-Keys: M map (chests drawn on the game's full map)   F12 next route / off   F2 skip a chest that is not there   F5 new match   F6 hide / show   F1 radar position   Alt+M full-map chests on/off   F10 quit.
+Keys: M map (chests drawn on the game's full map)   F12 next route / off   F2 skip a chest that is not there   F5 new match   F6 hide / show   F1 radar position   Alt+M full-map chests on/off   Alt+F overlay refresh rate   F10 quit.
 `--advanced` adds the calibration, 3D-marker and spawn-learning keys (F3/F4 FOV, Alt+arrows tilt / turn / lead, Ctrl+PgUp/PgDn floor, Ctrl+Left/Right
 reach, Ctrl+Up/Down distances, Ctrl+M 3D markers, Ctrl+R radar range, Ctrl+N north up, F7/F8 dug a chest / undo, F9 debug screenshot, F11 read the
 spawns off the open map) and the numbers on the status line.
@@ -37,7 +37,8 @@ from chestlab.paths import APP
 MSS = getattr(mss, "MSS", None) or mss.mss
 USER = os.path.join(APP, "user")
 LOG = os.path.join(USER, "live.log")
-MAX_FPS = 60                    # the overlay never needs more: a higher cap only costs the game frames
+FPS_STEPS = (60, 90, 120, 144)  # config fps / Alt+F: the overlay redraw rate. One radar frame costs ~6 ms of one CPU core (so 240 is out of reach), and every redraw is a 15 MB
+                                # upload for the window manager: 60 is the safe default, 120 smooths the radar on a fast monitor
 
 
 def game_rect(title="Fortnite"):
@@ -189,6 +190,13 @@ def main(overlay=Overlay, grabber=MssGrabber(), hotkeys=True, rect=None, seconds
             mapwatch[0].stop()
         return "chests on the full map: on" if cfg["fullmap"] else "chests on the full map: off (radar only)"
 
+    def cycle_fps():
+        cur = cfg.get("fps", 60)
+        nxt = next((f for f in FPS_STEPS if f > cur), FPS_STEPS[0])
+        cfg["fps"] = pipe.cfg["fps"] = nxt
+        save_config(cfg)
+        return "overlay refresh: %d fps" % nxt
+
     def cycle_radar_spot():
         spots = list(hud_mod.RADAR_SPOTS)
         cur = cfg.get("radar_at")
@@ -276,6 +284,7 @@ def main(overlay=Overlay, grabber=MssGrabber(), hotkeys=True, rect=None, seconds
         keyboard.add_hotkey("f2", act(pipe.skip_route_chest))                   # the next route chest is not there
         keyboard.add_hotkey("f5", act(pipe.reset_dug))                          # new match
         keyboard.add_hotkey("f6", ov.toggle)                                    # hide / show
+        keyboard.add_hotkey("alt+f", act(cycle_fps))                            # overlay refresh rate: 60 / 90 / 120 / 144
         keyboard.add_hotkey("alt+m", act(toggle_fullmap))                       # chests on the game's full map: on / off
         keyboard.add_hotkey("f1", act(cycle_radar_spot))                        # radar position: default / each corner
         keyboard.add_hotkey("f10", lambda: run.update(on=False))                # quit
@@ -390,7 +399,7 @@ def main(overlay=Overlay, grabber=MssGrabber(), hotkeys=True, rect=None, seconds
                     None if st["heading"] is None else round(st["heading"], 1), eng.heading_src,
                     st["compass"], len(st["markers"]), None if near is None else "#%d@%.0f/%.1fm" % (near["id"], near["brg"], near["hd"]),
                     fps.v, render_ms, eng.rate_c.v, eng.rate_p.v))
-            time.sleep(max(1.0 / MAX_FPS - (time.perf_counter() - t0), 0.001))       # steady MAX_FPS, whatever the monitor's refresh rate
+            time.sleep(max(1.0 / min(max(float(cfg.get("fps", 60)), 30.0), 144.0) - (time.perf_counter() - t0), 0.001))       # steady fps, whatever the monitor's refresh rate
     finally:
         if tally["n"]:
             n, w = tally["n"], np.asarray(work or [0.0])

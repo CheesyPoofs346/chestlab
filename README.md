@@ -17,6 +17,7 @@ From source: `python -m venv .venv`, `.venv\Scripts\pip install -r requirements.
 | --- | --- |
 | F1 | move the radar: right side (default), left, each corner |
 | Alt+M | chests on the game's full map: on / off |
+| Alt+F | overlay refresh rate: 60 (default) / 90 / 120 / 144 fps (240 is out of reach: one radar frame is ~6 ms of a CPU core) |
 | M | the game's full map (chests drawn on it while it is open) |
 | Shift | while it is only *looking* for the map (M pressed by accident): back to the radar |
 | F12 | next route / off |

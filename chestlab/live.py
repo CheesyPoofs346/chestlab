@@ -29,7 +29,7 @@ MINIMAP_BOX = (1786, 22, 1980, 214)   # in a 2000-px-wide frame; scaled by frame
 
 DEFAULTS = dict(mpp=0.0875, fov=78.0, yaw_off=0.0, v_off=0.0, pitch=-3.5, chest_z=0.4, dig_radius_m=15.0,
                 ocr_every_s=0.12, ring_m=1.2, pillar_m=8.0, lead_ms=25.0, floor_m=3.0, show_m=70.0, maybe_m=30.0,
-                markers_3d=False, radar_m=0.0, radar_up=True, radar_at="default", fullmap=True, route="")      # radar only by default; Ctrl+M brings the 3D markers back
+                markers_3d=False, radar_m=0.0, radar_up=True, radar_at="default", fullmap=True, fps=60, route="")      # radar only by default; Ctrl+M brings the 3D markers back
 
 
 def load_config():
