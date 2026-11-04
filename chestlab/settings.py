@@ -9,27 +9,10 @@ import threading
 import tkinter as tk
 from tkinter import ttk
 
-RADAR_AT = [("Right side (default)", "default"), ("Left side", "left"), ("Top left", "top-left"), ("Top right", "top-right"),
-            ("Bottom left", "bottom-left"), ("Bottom right", "bottom-right")]
-RADAR_M = [("Auto: zooms in as you reach a chest", 0.0), ("20 m", 20.0), ("40 m", 40.0), ("80 m", 80.0)]
-RADAR_UP = [("Ahead is up (turns with you)", True), ("North is up", False)]
-FPS = [("60 (recommended)", 60), ("90", 90), ("120", 120), ("144", 144)]
-# advanced numbers: key, label, low, high, step
-NUMBERS = [("fov", "Field of view (deg)", 50.0, 120.0, 1.0), ("yaw_off", "Turn offset (deg)", -30.0, 30.0, 0.5),
-           ("pitch", "Camera pitch (deg)", -40.0, 25.0, 0.5), ("lead_ms", "Turn lead (ms)", 0.0, 150.0, 5.0),
-           ("show_m", "Mark chests within (m)", 20.0, 500.0, 10.0), ("mpp", "Metres per map pixel", 0.03, 0.6, 0.0025)]
+from .options import FPS, FULLMAP, RADAR_AT, RADAR_M, RADAR_UP, label_of, value_of
+
 ACTIONS = [("skip", "Skip the next route chest (it is not there)"), ("new_match", "New match: forget which chests I opened"),
            ("hide", "Hide / show the overlay")]
-ADVANCED_ACTIONS = [("dig", "I opened a chest here (learn it)"), ("undo_dig", "Undo that"), ("debug_shot", "Save a debug screenshot"),
-                    ("scan_map", "Read the chests off the open map")]
-
-
-def label_of(choices, value):
-    return next((t for t, v in choices if v == value), choices[0][0])
-
-
-def value_of(choices, text):
-    return next((v for t, v in choices if t == text), choices[0][1])
 
 
 class SettingsPanel:
@@ -70,34 +53,10 @@ class SettingsPanel:
             ttk.Button(act, text=text, command=lambda n=name: self.on_action(n)).grid(row=i, column=0, padx=8, pady=3, sticky="we")
         act.columnconfigure(0, weight=1)
 
-        self.adv_on = tk.BooleanVar(value=False)
-        ttk.Checkbutton(f, text="Show advanced settings", variable=self.adv_on, command=self._toggle_adv).pack(anchor="w", padx=12, pady=(10, 0))
-        self.adv = ttk.LabelFrame(f, text="Advanced")
-        self._check(self.adv, "Also draw 3D markers in the world", "markers_3d", bool(cfg.get("markers_3d", False)))
-        self.spins = {}
-        for key, text, lo, hi, step in NUMBERS:
-            row = ttk.Frame(self.adv)
-            row.pack(fill="x", padx=8, pady=2)
-            ttk.Label(row, text=text, width=24).pack(side="left")
-            v = tk.StringVar(value=self._num(cfg.get(key, lo)))
-            sp = ttk.Spinbox(row, from_=lo, to=hi, increment=step, textvariable=v, width=9, command=lambda k=key: self.on_number(k))
-            sp.pack(side="left")
-            sp.bind("<Return>", lambda e, k=key: self.on_number(k))
-            sp.bind("<FocusOut>", lambda e, k=key: self.on_number(k))
-            self.vars[key] = v
-            self.spins[key] = (sp, lo, hi)
-        for name, text in ADVANCED_ACTIONS:
-            ttk.Button(self.adv, text=text, command=lambda n=name: self.on_action(n)).pack(fill="x", padx=8, pady=3)
-
         ttk.Button(f, text="Quit ChestLab", command=lambda: self.on_action("quit")).pack(fill="x", padx=12, pady=(12, 0))
         ttk.Label(f, textvariable=self.status, foreground="#555").pack(anchor="w", padx=12, pady=(8, 0))
 
     # ---- building blocks
-    @staticmethod
-    def _num(v):
-        v = float(v)
-        return ("%g" % round(v, 4))
-
     def _combo(self, parent, text, key, choices, value):
         row = ttk.Frame(parent)
         row.pack(fill="x", padx=8, pady=4)
@@ -116,12 +75,6 @@ class SettingsPanel:
     def _route_label(self, route_now):
         return next((t for t, v in self.routes if v == str(route_now)), self.routes[0][0]) if route_now else self.routes[0][0]
 
-    def _toggle_adv(self):
-        if self.adv_on.get():
-            self.adv.pack(fill="x", padx=12, pady=(6, 0))
-        else:
-            self.adv.pack_forget()
-
     # ---- what the user does
     def _report(self, msg):
         self.status.set(msg or "")
@@ -131,16 +84,6 @@ class SettingsPanel:
 
     def on_check(self, key):
         self._report(self.set_value(key, bool(self.vars[key].get())))
-
-    def on_number(self, key):
-        sp, lo, hi = self.spins[key]
-        try:
-            v = min(max(float(self.vars[key].get()), lo), hi)
-        except ValueError:
-            v = float(self.cfg.get(key, lo))
-        self.vars[key].set(self._num(v))
-        if abs(v - float(self.cfg.get(key, lo))) > 1e-9:
-            self._report(self.set_value(key, v))
 
     def on_route(self):
         self._report(self.do("route:" + value_of(self.routes, self.route_var.get())))

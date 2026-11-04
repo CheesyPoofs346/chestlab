@@ -15,10 +15,10 @@ From source: `python -m venv .venv`, `.venv\Scripts\pip install -r requirements.
 
 ## Settings
 
-There are no key binds to learn. Everything is in the **ChestLab settings window**, which starts minimised in the taskbar (it never pops up over the
-game): radar position (right side by default, left, any corner), radar range and orientation, chests on the game's full map on/off, overlay refresh rate
-(60 / 90 / 120 / 144), route, skip a chest, new match, hide the overlay, quit, and an advanced section (calibration, 3D markers, learning chests).
-Changes apply at once and are saved in `user/config.json`.
+There are no key binds to learn. The same settings are on the **Settings** button of the start-up window and in the **ChestLab settings window**,
+which starts minimised in the taskbar (it never pops up over the game): radar position (right side by default, left, any corner), radar range and
+orientation, chests on the game's full map on/off, overlay refresh rate (60 / 90 / 120 / 144). The window also has the route, skip a chest, new match,
+hide the overlay and quit. Changes apply at once and are saved in `user/config.json`.
 
 The only keys it watches are the game's own: **M** and **Esc** for the full map, and **Shift** to go back to the radar when M was pressed by accident
 (while only *looking* for the map; once the map is found Shift stays the game's Reset).
@@ -36,8 +36,8 @@ moment (the radar then coasts, dimmed)
 ## Build the exe
 
 `build_exe.bat` (PyInstaller, one file) -> `dist\ChestLab.exe`. `ChestLab.exe --selftest` loads everything and exits without opening a window.
-Tests: `python -m unittest discover -s tests`; `python bench.py`.
+Tests: `python -m unittest discover -s tests`; `python bench.py`. The tests that need real game screenshots (`tests/data/`, not included) are skipped when it is missing.
 
 ## Data
 
-`assets/` holds map and chest data taken from fortnite.gg and screenshots of the game; those belong to their owners. Not affiliated with Epic Games.
+`assets/` holds map and chest data taken from fortnite.gg; those belong to their owners. Not affiliated with Epic Games.

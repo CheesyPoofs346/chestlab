@@ -10,6 +10,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 from chestlab import compass, live
 
+if not os.path.isdir(os.path.join(ROOT, "tests", "data")):
+    raise unittest.SkipTest("tests/data (real screenshots) is not part of the repository")
+
 FRAME = cv2.imread(os.path.join(ROOT, "tests", "data", "gameplay.webp"))
 
 

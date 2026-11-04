@@ -12,6 +12,7 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
+from . import options
 from .paths import BASE as ROOT
 REF = os.path.join(ROOT, "assets", "gg", "full_z4.png")
 W, H = 1120, 800
@@ -97,14 +98,31 @@ def layout(n_cards):
         x += w + 10
     cards = [(PAD + (i % 2) * (CARD_W + GAP), 160 + (i // 2) * (CARD_H + GAP)) for i in range(n_cards)]
     cards = [(x, y, x + CARD_W, y + CARD_H) for x, y in cards]
-    return dict(tabs=tabs, cards=cards, none=(W - PAD - 360, 738, W - PAD - 170, 778), start=(W - PAD - 150, 738, W - PAD, 778))
+    return dict(tabs=tabs, cards=cards, none=(W - PAD - 360, 738, W - PAD - 170, 778), start=(W - PAD - 150, 738, W - PAD, 778),
+                settings=(W - PAD - 520, 738, W - PAD - 380, 778))
+
+
+def settings_layout():
+    """The settings page: one row per option, a pill per choice. -> ([(key, value, rect)], back button rect)."""
+    pills, y = [], 150
+    for _, key in options.ROWS:
+        x = PAD
+        for text, value in options.SHORT[key]:
+            w = int(font("s", 15).getlength(text) / S) + 36
+            pills.append((key, value, (x, y + 34, x + w, y + 74)))
+            x += w + 10
+        y += 112
+    return pills, (W - PAD - 360, 738, W - PAD - 170, 778)
 
 
 class Picker:
     """Which tab, which card, what is under the mouse. Pure state: the window just calls these."""
 
-    def __init__(self, routes, last=None):
+    def __init__(self, routes, last=None, settings=None, on_change=None):
         self.routes = routes
+        self.values = {**options.DEFAULTS, **(settings or {})}       # the settings page: current value per config key
+        self.on_change = on_change
+        self.view = "routes"                                         # "routes" | "settings"
         self.tab_ids = [[i for i, r in enumerate(routes) if tab_of(r) == t] for t in range(len(TABS))]
         self.last = last if last is not None and 0 <= last < len(routes) else None
         self.tab = tab_of(routes[self.last]) if self.last is not None else next((t for t, ids in enumerate(self.tab_ids) if ids), 0)
@@ -117,8 +135,17 @@ class Picker:
         return self.tab_ids[self.tab]
 
     def hit(self, x, y):
+        if self.view == "settings":
+            pills, back = settings_layout()
+            for key, value, (x0, y0, x1, y1) in pills:
+                if x0 <= x < x1 and y0 <= y < y1:
+                    return ("opt", key, value)
+            for name, (x0, y0, x1, y1) in (("back", back), ("start", layout(0)["start"])):
+                if x0 <= x < x1 and y0 <= y < y1:
+                    return (name,)
+            return None
         lay = layout(len(self.ids))
-        for name in ("start", "none"):
+        for name in ("start", "none", "settings"):
             x0, y0, x1, y1 = lay[name]
             if x0 <= x < x1 and y0 <= y < y1:
                 return (name,)
@@ -143,7 +170,13 @@ class Picker:
         h = self.hit(x, y)
         if h is None:
             return
-        if h[0] == "tab":
+        if h[0] == "opt":
+            self.choose(h[1], h[2])
+        elif h[0] == "back":
+            self.view = "routes"
+        elif h[0] == "settings":
+            self.view = "settings"
+        elif h[0] == "tab":
             self.set_tab(h[1])
         elif h[0] == "card":
             self.sel = h[1]
@@ -154,12 +187,23 @@ class Picker:
         elif h[0] == "start":
             self.finish()
 
+    def choose(self, key, value):
+        self.values[key] = value
+        if self.on_change is not None:
+            self.on_change(key, value)
+
     def finish(self):
         self.result = str(self.sel + 1) if self.sel is not None else "0"
 
     def key(self, name):
         """Arrow keys move between cards (2 columns), Tab / Shift-Tab between groups, 1-5 jump to a group, Enter starts, Esc = no route."""
         ids = self.ids
+        if self.view == "settings":                           # Esc / Backspace: back to the routes, Enter: start
+            if name in ("Return", "KP_Enter"):
+                self.finish()
+            elif name in ("Escape", "BackSpace"):
+                self.view = "routes"
+            return
         if name in ("Return", "KP_Enter"):
             self.finish()
         elif name == "Escape":
@@ -175,6 +219,27 @@ class Picker:
 
 
 # ---- drawing
+def render_settings(p, im, d, s, text):
+    text(PAD, 52, "Settings", "b", 30, TEXT)
+    text(PAD, 78, "Applied at once and saved. Your route stays as you left it; you can change all of this later in the ChestLab window.", "r", 14, MUTED)
+    pills, back = settings_layout()
+    for (label, key), y in zip(options.ROWS, range(150, 150 + 112 * len(options.ROWS), 112)):
+        text(PAD, y + 16, label, "s", 17, TEXT)
+    for key, value, (x0, y0, x1, y1) in pills:
+        on, hot = p.values.get(key) == value, p.hover == ("opt", key, value)
+        d.rounded_rectangle(s(x0, y0, x1, y1), radius=20 * S, fill=GOLD if on else CARD_HOT if hot else CARD)
+        label = next(t for t, v in options.SHORT[key] if v == value)
+        text((x0 + x1) / 2, (y0 + y1) / 2 + 5.5, label, "s", 15, (24, 20, 10) if on else TEXT if hot else MUTED, "ms")
+    for name, label, rect, primary in (("back", "Back to routes", back, False), ("start", "Start", layout(0)["start"], True)):
+        x0, y0, x1, y1 = rect
+        hot = p.hover == (name,)
+        d.rounded_rectangle(s(x0, y0, x1, y1), radius=20 * S, fill=(GOLD if not hot else (255, 204, 70)) if primary else CARD_HOT if hot else CARD)
+        text((x0 + x1) / 2, (y0 + y1) / 2 + 5.5, label, "s", 15, (24, 20, 10) if primary else TEXT, "ms")
+    text(PAD, 764, "Esc back      Enter start", "r", 13, DIM)
+    out = im.resize((W, H), Image.LANCZOS)
+    return cv2.cvtColor(np.asarray(out), cv2.COLOR_RGB2BGR)
+
+
 def render(p, thumbs):
     """Picker state -> BGR image (H, W, 3). `thumbs` = {route index: RGB array from thumb()}."""
     im = Image.new("RGB", (W * S, H * S), BG)
@@ -185,6 +250,8 @@ def render(p, thumbs):
     def text(x, y, t, kind, px, col, anchor="ls"):
         d.text((x * S, y * S), t, font=font(kind, px), fill=col, anchor=anchor)
 
+    if p.view == "settings":
+        return render_settings(p, im, d, s, text)
     text(PAD, 52, "Choose your route", "b", 30, TEXT)
     text(PAD, 78, "Pick one, press Enter. You can change it any time in the ChestLab settings window.", "r", 14, MUTED)
     if p.last is not None:
@@ -227,7 +294,7 @@ def render(p, thumbs):
         d.rounded_rectangle(s(bx0, by, bx0 + (bx1 - bx0) * r["per_min"] / best, by + 4), radius=2 * S, fill=GOLD if sel else (150, 120, 40))
         if ri == p.last:
             text(x1 - 20, y0 + 28, "LAST USED", "s", 10, DIM, "rs")
-    for name, label, primary in (("none", "No route · all chests", False), ("start", "Start", True)):
+    for name, label, primary in (("settings", "Settings", False), ("none", "No route · all chests", False), ("start", "Start", True)):
         x0, y0, x1, y1 = lay[name]
         hot = p.hover == (name,)
         d.rounded_rectangle(s(x0, y0, x1, y1), radius=20 * S, fill=(GOLD if not hot else (255, 204, 70)) if primary else CARD_HOT if hot else CARD)
@@ -238,14 +305,14 @@ def render(p, thumbs):
 
 
 # ---- the window (Tk, thin: everything above is testable without one)
-def pick(routes, last=None):
+def pick(routes, last=None, settings=None, on_change=None):
     import tkinter as tk
     try:
         import ctypes
         ctypes.windll.shcore.SetProcessDpiAwareness(2)        # real pixels, not a blurry scaled bitmap
     except Exception:
         pass
-    p = Picker(routes, last)
+    p = Picker(routes, last, settings, on_change)
     thumbs = {}
     for i, r in enumerate(routes):
         try:

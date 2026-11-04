@@ -69,16 +69,6 @@ def log(msg):
         f.write(time.strftime("%H:%M:%S ") + msg + "\n")
 
 
-def save_debug(mon, grabber=MssGrabber()):
-    """What the capture sees right now: the screen, the minimap crop and the compass strip, into user/."""
-    frame = cv2.cvtColor(grabber()(dict(left=mon["left"], top=mon["top"], width=mon["width"], height=mon["height"])), cv2.COLOR_BGRA2BGR)
-    x0, y0, w, h = region_px(frame.shape[1])
-    cv2.imwrite(os.path.join(USER, "debug_frame.png"), frame)
-    cv2.imwrite(os.path.join(USER, "debug_minimap.png"), crop_minimap(frame))
-    cv2.imwrite(os.path.join(USER, "debug_compass.png"), frame[y0:y0 + h, x0:x0 + w])
-    log("saved user/debug_frame.png, debug_minimap.png, debug_compass.png")
-
-
 def pick_route(pipe, cfg, args, ask, window=None):
     """Before the overlay starts: which route are we doing? `--route 3` / `--route "2 players"` / `--route none` on the command line, else
     the picker window (a card per route with a map preview; `window` = the function that shows it, default chestlab.picker.pick), else
@@ -92,7 +82,10 @@ def pick_route(pipe, cfg, args, ask, window=None):
         try:
             if window is None:
                 from chestlab import picker
-                window = lambda: picker.pick(picker.describe(pipe), li)
+                def on_change(key, value):                      # the picker's Settings page: apply and save at once
+                    cfg[key] = pipe.cfg[key] = value
+                    save_config(cfg)
+                window = lambda: picker.pick(picker.describe(pipe), li, cfg, on_change)
             want = window()
         except Exception as e:
             log("route window failed (%s)" % e)
@@ -148,7 +141,6 @@ def main(overlay=Overlay, grabber=MssGrabber(), hotkeys=True, rect=None, seconds
                 say(fn())
         return lambda: threading.Thread(target=go, daemon=True).start()
 
-    scanner = []
     mapwatch = []
     finders = []
     if ask_route and cfg.get("fullmap", True):      # load the map the full-map overlay matches against now, so M finds it at once
@@ -204,21 +196,6 @@ def main(overlay=Overlay, grabber=MssGrabber(), hotkeys=True, rect=None, seconds
             say("back to the radar", 2)
 
 
-    def scan_map():
-        """F11 with the full map open: register the frame to the island map and read which spawns carry a chest icon."""
-        say("reading the map...", 2)
-        try:
-            if not scanner:
-                from chestlab.mapscan import MapScanner
-                scanner.append(MapScanner())
-            m = eng.mon
-            frame = cv2.cvtColor(grabber()(dict(left=m["left"], top=m["top"], width=m["width"], height=m["height"])), cv2.COLOR_BGRA2BGR)
-            res = scanner[0].scan(frame)
-            with eng.lock:
-                say(pipe.apply_scan(res), 9)
-        except Exception as e:
-            say("map scan failed: %s" % e, 6)
-
     if hotkeys:                                                                 # only the game's own keys: everything else is in the settings window
         keyboard.add_hotkey("esc", close_map)                                   # Esc closes the game's map too
         keyboard.add_hotkey("m", open_map)                                      # the game's full map: chests drawn on it
@@ -238,20 +215,12 @@ def main(overlay=Overlay, grabber=MssGrabber(), hotkeys=True, rect=None, seconds
 
     def do(action):
         """A button in the settings window."""
-        def bg(fn):
-            threading.Thread(target=fn, daemon=True).start()
-            return "Working..."
-
         if action == "quit":
             run.update(on=False)
             return "Quitting..."
         if action == "hide":
             ov.toggle()
             return "Overlay shown." if ov.visible else "Overlay hidden."
-        if action == "debug_shot":
-            return bg(lambda: (save_debug(eng.mon, grabber), say("saved debug screenshot to the user folder")))
-        if action == "scan_map":
-            return bg(scan_map)
         with eng.lock:
             if action.startswith("route:"):
                 spec = action[6:]
@@ -259,7 +228,7 @@ def main(overlay=Overlay, grabber=MssGrabber(), hotkeys=True, rect=None, seconds
                 cfg["route"] = spec if spec not in ("0", "none", "off") else ""
                 save_config(cfg)
             else:
-                msg = {"skip": pipe.skip_route_chest, "new_match": pipe.reset_dug, "dig": pipe.dig, "undo_dig": pipe.undo_dig}[action]()
+                msg = {"skip": pipe.skip_route_chest, "new_match": pipe.reset_dug}[action]()
         say(msg)
         return msg
 
@@ -281,9 +250,10 @@ def main(overlay=Overlay, grabber=MssGrabber(), hotkeys=True, rect=None, seconds
 
     fps, render_ms, work = Rate(), 0.0, []
     tally = dict(n=0, lock=0, storm=0, head=0, on=0)       # whole-session counts for the summary line in the log
-    last_rect = last_state = lost_since = last_dump = status_t = 0.0
+    last_rect = last_state = lost_since = status_t = 0.0
     held_now = False
     last_good = []
+    st = None                                                        # the last frame's state (None if the run ended before one)
     status, dot = "", "#ffb020"
     try:
         while run["on"]:
@@ -319,9 +289,6 @@ def main(overlay=Overlay, grabber=MssGrabber(), hotkeys=True, rect=None, seconds
                 lost_since = lost_since or t0
             else:
                 lost_since = 0.0
-            if lost_since and t0 - lost_since > 4 and t0 - last_dump > 30:
-                last_dump = t0
-                threading.Thread(target=save_debug, args=(eng.mon, grabber), daemon=True).start()
             if ov.visible:
                 if t0 - status_t >= 0.25 or eng.err:                    # status text changes 4x a second at most (each new text is a new sprite)
                     status_t = t0

@@ -8,3 +8,4 @@ routes/
 build/
 dist/
 *.spec
+tests/data/

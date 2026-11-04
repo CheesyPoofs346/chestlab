@@ -38,6 +38,8 @@ def err_px(T, est, w=W, h=H):
     return float(np.hypot(*((ref @ est[:, :2].T + est[:, 2]) - pts).T).max())
 
 
+if not os.path.isdir(os.path.join(ROOT, "tests", "data")):
+    raise unittest.SkipTest("tests/data (real screenshots) is not part of the repository")
 DATA = os.path.join(ROOT, "tests", "data")
 REAL_MAP = cv2.imread(os.path.join(DATA, "map_open.webp"))          # the user's own screenshot of the open in-game map (2000 x 1125)
 STORM_MAP = cv2.imread(os.path.join(DATA, "map_storm.webp"))         # the map during a storm (everything purple)

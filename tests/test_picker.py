@@ -115,3 +115,49 @@ class PickerTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SettingsPage(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.info = picker.describe(live.Pipeline(dict(live.DEFAULTS)))
+
+    def center(self, rect):
+        return (rect[0] + rect[2]) / 2, (rect[1] + rect[3]) / 2
+
+    def test_open_choose_and_go_back(self):
+        got = []
+        p = picker.Picker(self.info, None, dict(radar_at="default"), lambda k, v: got.append((k, v)))
+        p.click(*self.center(picker.layout(len(p.ids))["settings"]))
+        self.assertEqual(p.view, "settings")
+        pills, back = picker.settings_layout()
+        want = next(r for k, v, r in pills if (k, v) == ("radar_at", "bottom-right"))
+        p.click(*self.center(want))
+        nofull = next(r for k, v, r in pills if (k, v) == ("fullmap", False))
+        p.click(*self.center(nofull))
+        self.assertEqual(got, [("radar_at", "bottom-right"), ("fullmap", False)])
+        self.assertEqual(p.values["radar_at"], "bottom-right")
+        self.assertFalse(p.values["fullmap"])
+        self.assertEqual(p.result, "unset")                            # choosing a setting never starts or picks a route
+        p.click(*self.center(back))
+        self.assertEqual(p.view, "routes")
+
+    def test_keys_in_the_settings_page(self):
+        p = picker.Picker(self.info)
+        p.view = "settings"
+        p.key("Escape")
+        self.assertEqual((p.view, p.result), ("routes", "unset"))      # Esc leaves the page instead of choosing "no route"
+        p.view = "settings"
+        p.key("Return")
+        self.assertNotEqual(p.result, "unset")                         # Enter starts
+
+    def test_renders_and_every_choice_fits_the_window(self):
+        p = picker.Picker(self.info, None, dict(radar_at="top-left", fps=120))
+        p.view = "settings"
+        img = picker.render(p, {})
+        self.assertEqual(img.shape, (picker.H, picker.W, 3))
+        pills, back = picker.settings_layout()
+        self.assertEqual(len(pills), sum(len(v) for v in picker.options.SHORT.values()))
+        for _, _, (x0, y0, x1, y1) in pills:
+            self.assertTrue(0 <= x0 < x1 <= picker.W - picker.PAD and 0 < y0 < y1 < 738)
+        self.assertGreater(int((img != img[0, 0]).any(axis=2).sum()), 5000)       # something is drawn
