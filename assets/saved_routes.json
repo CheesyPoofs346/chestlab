@@ -1,0 +1,132 @@
+[
+ {
+  "name": "Your 60 s route",
+  "budget_s": 60,
+  "source": "route screenshot, matched to the chest list",
+  "seconds": 59.3,
+  "chests_per_min_with_reset": 7.2,
+  "walk_m": 269,
+  "path": [
+   {
+    "n": 1,
+    "kind": "chest",
+    "unit": [
+     95.54,
+     154.7
+    ]
+   },
+   {
+    "n": 2,
+    "kind": "chest",
+    "unit": [
+     94.93,
+     154.56
+    ]
+   },
+   {
+    "n": 3,
+    "kind": "chest",
+    "unit": [
+     94.91,
+     155.21
+    ]
+   },
+   {
+    "n": 4,
+    "kind": "chest_sure",
+    "unit": [
+     94.07,
+     155.73
+    ]
+   },
+   {
+    "n": 5,
+    "kind": "chest_sure",
+    "unit": [
+     94.26,
+     158.34
+    ]
+   },
+   {
+    "n": 6,
+    "kind": "chest_sure",
+    "unit": [
+     95.98,
+     156.38
+    ]
+   },
+   {
+    "n": 7,
+    "kind": "chest_sure",
+    "unit": [
+     100.46,
+     156.7
+    ]
+   },
+   {
+    "n": 8,
+    "kind": "chest_sure",
+    "unit": [
+     104.78,
+     157.75
+    ]
+   },
+   {
+    "n": 9,
+    "kind": "chest_sure",
+    "unit": [
+     103.95,
+     153.43
+    ]
+   },
+   {
+    "n": 10,
+    "kind": "sprite",
+    "unit": [
+     104.41,
+     152.97
+    ]
+   },
+   {
+    "n": 11,
+    "kind": "chest_sure",
+    "unit": [
+     109.63,
+     149.57
+    ]
+   },
+   {
+    "n": 12,
+    "kind": "chest",
+    "unit": [
+     110.92,
+     149.15
+    ]
+   },
+   {
+    "n": 13,
+    "kind": "chest",
+    "unit": [
+     111.24,
+     148.71
+    ]
+   },
+   {
+    "n": 14,
+    "kind": "chest_sure",
+    "unit": [
+     111.14,
+     148.18
+    ]
+   },
+   {
+    "n": 15,
+    "kind": "chest",
+    "unit": [
+     111.69,
+     148.05
+    ]
+   }
+  ]
+ }
+]

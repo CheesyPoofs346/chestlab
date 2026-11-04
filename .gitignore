@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+out/
+real/
+user/
+routes/
+build/
+dist/
+*.spec

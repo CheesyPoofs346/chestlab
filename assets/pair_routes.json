@@ -1,0 +1,633 @@
+[
+ {
+  "budget_s": 60,
+  "scope": "pair",
+  "chests": 31,
+  "guaranteed": 21,
+  "expected": 26.0,
+  "seconds": 58.5,
+  "nearest_place": "Lantern Landing",
+  "nearest_place_m": 170,
+  "nearest_named_m": 137,
+  "players": [
+   {
+    "chests": 15,
+    "guaranteed": 10,
+    "expected": 12.5,
+    "seconds": 57.8,
+    "walk_m": 259,
+    "start_units": [
+     128.86,
+     141.63
+    ],
+    "path": [
+     {
+      "n": 1,
+      "kind": "chest",
+      "unit": [
+       128.86,
+       141.63
+      ],
+      "leg_m": 0.0
+     },
+     {
+      "n": 2,
+      "kind": "chest_sure",
+      "unit": [
+       124.73,
+       144.14
+      ],
+      "leg_m": 42.3
+     },
+     {
+      "n": 3,
+      "kind": "chest",
+      "unit": [
+       123.81,
+       149.01
+      ],
+      "leg_m": 43.4
+     },
+     {
+      "n": 4,
+      "kind": "chest_sure",
+      "unit": [
+       124.94,
+       150.14
+      ],
+      "leg_m": 13.9
+     },
+     {
+      "n": 5,
+      "kind": "chest_sure",
+      "unit": [
+       122.56,
+       150.01
+      ],
+      "leg_m": 20.8
+     },
+     {
+      "n": 6,
+      "kind": "sprite",
+      "unit": [
+       120.44,
+       147.78
+      ],
+      "leg_m": 27.0
+     },
+     {
+      "n": 7,
+      "kind": "chest_sure",
+      "unit": [
+       119.98,
+       148.7
+      ],
+      "leg_m": 9.0
+     },
+     {
+      "n": 8,
+      "kind": "chest_sure",
+      "unit": [
+       119.54,
+       148.27
+      ],
+      "leg_m": 5.4
+     },
+     {
+      "n": 9,
+      "kind": "chest_sure",
+      "unit": [
+       119.07,
+       147.93
+      ],
+      "leg_m": 5.1
+     },
+     {
+      "n": 10,
+      "kind": "chest_sure",
+      "unit": [
+       119.0,
+       148.1
+      ],
+      "leg_m": 1.6
+     },
+     {
+      "n": 11,
+      "kind": "chest",
+      "unit": [
+       111.69,
+       148.05
+      ],
+      "leg_m": 64.0
+     },
+     {
+      "n": 12,
+      "kind": "chest_sure",
+      "unit": [
+       111.14,
+       148.18
+      ],
+      "leg_m": 4.9
+     },
+     {
+      "n": 13,
+      "kind": "chest",
+      "unit": [
+       111.24,
+       148.71
+      ],
+      "leg_m": 4.7
+     },
+     {
+      "n": 14,
+      "kind": "chest",
+      "unit": [
+       110.92,
+       149.15
+      ],
+      "leg_m": 4.7
+     },
+     {
+      "n": 15,
+      "kind": "chest_sure",
+      "unit": [
+       109.63,
+       149.57
+      ],
+      "leg_m": 11.8
+     }
+    ]
+   },
+   {
+    "chests": 16,
+    "guaranteed": 11,
+    "expected": 13.5,
+    "seconds": 58.5,
+    "walk_m": 256,
+    "start_units": [
+     129.27,
+     138.4
+    ],
+    "path": [
+     {
+      "n": 1,
+      "kind": "chest",
+      "unit": [
+       129.27,
+       138.4
+      ],
+      "leg_m": 0.0
+     },
+     {
+      "n": 2,
+      "kind": "sprite",
+      "unit": [
+       128.62,
+       138.11
+      ],
+      "leg_m": 6.2
+     },
+     {
+      "n": 3,
+      "kind": "chest",
+      "unit": [
+       133.28,
+       137.94
+      ],
+      "leg_m": 40.8
+     },
+     {
+      "n": 4,
+      "kind": "chest_sure",
+      "unit": [
+       133.48,
+       137.54
+      ],
+      "leg_m": 3.9
+     },
+     {
+      "n": 5,
+      "kind": "chest_sure",
+      "unit": [
+       135.17,
+       132.78
+      ],
+      "leg_m": 44.2
+     },
+     {
+      "n": 6,
+      "kind": "chest_sure",
+      "unit": [
+       135.17,
+       132.06
+      ],
+      "leg_m": 6.3
+     },
+     {
+      "n": 7,
+      "kind": "chest_sure",
+      "unit": [
+       136.33,
+       131.04
+      ],
+      "leg_m": 13.6
+     },
+     {
+      "n": 8,
+      "kind": "chest",
+      "unit": [
+       137.39,
+       131.67
+      ],
+      "leg_m": 10.8
+     },
+     {
+      "n": 9,
+      "kind": "chest",
+      "unit": [
+       138.11,
+       130.48
+      ],
+      "leg_m": 12.2
+     },
+     {
+      "n": 10,
+      "kind": "sprite",
+      "unit": [
+       138.15,
+       130.1
+      ],
+      "leg_m": 3.4
+     },
+     {
+      "n": 11,
+      "kind": "chest_sure",
+      "unit": [
+       137.65,
+       128.88
+      ],
+      "leg_m": 11.5
+     },
+     {
+      "n": 12,
+      "kind": "chest",
+      "unit": [
+       137.7,
+       128.89
+      ],
+      "leg_m": 0.4
+     },
+     {
+      "n": 13,
+      "kind": "chest_sure",
+      "unit": [
+       143.55,
+       128.32
+      ],
+      "leg_m": 51.4
+     },
+     {
+      "n": 14,
+      "kind": "chest_sure",
+      "unit": [
+       147.26,
+       125.44
+      ],
+      "leg_m": 41.1
+     },
+     {
+      "n": 15,
+      "kind": "chest_sure",
+      "unit": [
+       147.46,
+       125.91
+      ],
+      "leg_m": 4.5
+     },
+     {
+      "n": 16,
+      "kind": "chest_sure",
+      "unit": [
+       147.94,
+       126.29
+      ],
+      "leg_m": 5.3
+     }
+    ]
+   }
+  ],
+  "start_gap_m": 28,
+  "chests_per_min_with_reset": 15.8
+ },
+ {
+  "budget_s": 60,
+  "scope": "pair",
+  "chests": 30,
+  "guaranteed": 19,
+  "expected": 24.5,
+  "seconds": 59.7,
+  "nearest_place": "Giant'S Battlefield",
+  "nearest_place_m": 60,
+  "nearest_named_m": 105,
+  "players": [
+   {
+    "chests": 16,
+    "guaranteed": 10,
+    "expected": 13.0,
+    "seconds": 59.7,
+    "walk_m": 263,
+    "start_units": [
+     111.69,
+     148.05
+    ],
+    "path": [
+     {
+      "n": 1,
+      "kind": "chest",
+      "unit": [
+       111.69,
+       148.05
+      ],
+      "leg_m": 0.0
+     },
+     {
+      "n": 2,
+      "kind": "chest_sure",
+      "unit": [
+       119.0,
+       148.1
+      ],
+      "leg_m": 64.0
+     },
+     {
+      "n": 3,
+      "kind": "chest_sure",
+      "unit": [
+       119.07,
+       147.93
+      ],
+      "leg_m": 1.6
+     },
+     {
+      "n": 4,
+      "kind": "chest_sure",
+      "unit": [
+       119.54,
+       148.27
+      ],
+      "leg_m": 5.1
+     },
+     {
+      "n": 5,
+      "kind": "chest_sure",
+      "unit": [
+       119.98,
+       148.7
+      ],
+      "leg_m": 5.4
+     },
+     {
+      "n": 6,
+      "kind": "sprite",
+      "unit": [
+       120.44,
+       147.78
+      ],
+      "leg_m": 9.0
+     },
+     {
+      "n": 7,
+      "kind": "chest_sure",
+      "unit": [
+       122.56,
+       150.01
+      ],
+      "leg_m": 27.0
+     },
+     {
+      "n": 8,
+      "kind": "chest",
+      "unit": [
+       123.81,
+       149.01
+      ],
+      "leg_m": 14.0
+     },
+     {
+      "n": 9,
+      "kind": "chest_sure",
+      "unit": [
+       124.94,
+       150.14
+      ],
+      "leg_m": 13.9
+     },
+     {
+      "n": 10,
+      "kind": "chest",
+      "unit": [
+       129.74,
+       147.59
+      ],
+      "leg_m": 47.6
+     },
+     {
+      "n": 11,
+      "kind": "chest",
+      "unit": [
+       130.68,
+       148.68
+      ],
+      "leg_m": 12.6
+     },
+     {
+      "n": 12,
+      "kind": "chest",
+      "unit": [
+       131.67,
+       148.15
+      ],
+      "leg_m": 9.8
+     },
+     {
+      "n": 13,
+      "kind": "chest_sure",
+      "unit": [
+       131.22,
+       147.56
+      ],
+      "leg_m": 6.5
+     },
+     {
+      "n": 14,
+      "kind": "chest",
+      "unit": [
+       132.44,
+       146.64
+      ],
+      "leg_m": 13.4
+     },
+     {
+      "n": 15,
+      "kind": "sprite",
+      "unit": [
+       133.07,
+       147.17
+      ],
+      "leg_m": 7.2
+     },
+     {
+      "n": 16,
+      "kind": "chest_sure",
+      "unit": [
+       135.97,
+       147.84
+      ],
+      "leg_m": 26.0
+     }
+    ]
+   },
+   {
+    "chests": 14,
+    "guaranteed": 9,
+    "expected": 11.5,
+    "seconds": 57.1,
+    "walk_m": 262,
+    "start_units": [
+     110.92,
+     149.15
+    ],
+    "path": [
+     {
+      "n": 1,
+      "kind": "chest",
+      "unit": [
+       110.92,
+       149.15
+      ],
+      "leg_m": 0.0
+     },
+     {
+      "n": 2,
+      "kind": "chest",
+      "unit": [
+       111.24,
+       148.71
+      ],
+      "leg_m": 4.7
+     },
+     {
+      "n": 3,
+      "kind": "chest_sure",
+      "unit": [
+       111.14,
+       148.18
+      ],
+      "leg_m": 4.7
+     },
+     {
+      "n": 4,
+      "kind": "chest_sure",
+      "unit": [
+       109.63,
+       149.57
+      ],
+      "leg_m": 17.9
+     },
+     {
+      "n": 5,
+      "kind": "sprite",
+      "unit": [
+       104.41,
+       152.97
+      ],
+      "leg_m": 54.5
+     },
+     {
+      "n": 6,
+      "kind": "chest_sure",
+      "unit": [
+       103.95,
+       153.43
+      ],
+      "leg_m": 5.7
+     },
+     {
+      "n": 7,
+      "kind": "chest_sure",
+      "unit": [
+       104.78,
+       157.75
+      ],
+      "leg_m": 38.5
+     },
+     {
+      "n": 8,
+      "kind": "chest_sure",
+      "unit": [
+       100.46,
+       156.7
+      ],
+      "leg_m": 38.9
+     },
+     {
+      "n": 9,
+      "kind": "chest_sure",
+      "unit": [
+       95.98,
+       156.38
+      ],
+      "leg_m": 39.3
+     },
+     {
+      "n": 10,
+      "kind": "chest",
+      "unit": [
+       95.54,
+       154.7
+      ],
+      "leg_m": 15.2
+     },
+     {
+      "n": 11,
+      "kind": "chest",
+      "unit": [
+       94.93,
+       154.56
+      ],
+      "leg_m": 5.4
+     },
+     {
+      "n": 12,
+      "kind": "chest",
+      "unit": [
+       94.91,
+       155.21
+      ],
+      "leg_m": 5.7
+     },
+     {
+      "n": 13,
+      "kind": "chest_sure",
+      "unit": [
+       94.07,
+       155.73
+      ],
+      "leg_m": 8.7
+     },
+     {
+      "n": 14,
+      "kind": "chest_sure",
+      "unit": [
+       94.26,
+       158.34
+      ],
+      "leg_m": 22.9
+     }
+    ]
+   }
+  ],
+  "start_gap_m": 12,
+  "chests_per_min_with_reset": 14.7
+ }
+]
