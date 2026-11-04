@@ -1,11 +1,10 @@
 """Chest overlay for the whole map (every chest of the fortnite.gg list). Run via run.bat while Fortnite is in borderless / windowed-fullscreen.
-A radar on the right of the screen (F1 moves it: left / corners) (ahead is up, the nearest chests at their exact bearing and distance, the range zooms in as you reach one).
+A radar on the screen (ahead is up, the nearest chests at their exact bearing and distance, the range zooms in as you reach one).
 Pick a route in the window that opens at start-up (or `run.bat --route 3`, `--route "2 players"`, `--route none`): the radar then shows only
 that route's chests, with a gold line through the next few.
-Keys: M map (chests drawn on the game's full map)   F12 next route / off   F2 skip a chest that is not there   F5 new match   F6 hide / show   F1 radar position   Alt+M full-map chests on/off   Alt+F overlay refresh rate   F10 quit.
-`--advanced` adds the calibration, 3D-marker and spawn-learning keys (F3/F4 FOV, Alt+arrows tilt / turn / lead, Ctrl+PgUp/PgDn floor, Ctrl+Left/Right
-reach, Ctrl+Up/Down distances, Ctrl+M 3D markers, Ctrl+R radar range, Ctrl+N north up, F7/F8 dug a chest / undo, F9 debug screenshot, F11 read the
-spawns off the open map) and the numbers on the status line.
+There are no key binds to learn: every option (radar position and range, full-map chests on/off, refresh rate, route, skip a chest, new match,
+quit, calibration) is in the ChestLab settings window, which starts minimised in the taskbar. The only keys it watches are the game's own: M and Esc
+for the full map, and Shift to go back to the radar when M was pressed by accident. `--advanced` puts the match numbers on the status line.
 The overlay is a normal layered window: Snipping Tool, Print Screen and OBS all capture it."""
 import ctypes
 import multiprocessing as mp
@@ -37,8 +36,6 @@ from chestlab.paths import APP
 MSS = getattr(mss, "MSS", None) or mss.mss
 USER = os.path.join(APP, "user")
 LOG = os.path.join(USER, "live.log")
-FPS_STEPS = (60, 90, 120, 144)  # config fps / Alt+F: the overlay redraw rate. One radar frame costs ~6 ms of one CPU core (so 240 is out of reach), and every redraw is a 15 MB
-                                # upload for the window manager: 60 is the safe default, 120 smooths the radar on a fast monitor
 
 
 def game_rect(title="Fortnite"):
@@ -151,60 +148,6 @@ def main(overlay=Overlay, grabber=MssGrabber(), hotkeys=True, rect=None, seconds
                 say(fn())
         return lambda: threading.Thread(target=go, daemon=True).start()
 
-    def nudge(key, delta, lo, hi, fmt):
-        def f():
-            cfg[key] = round(min(hi, max(lo, cfg[key] + delta)), 4)
-            pipe.cfg[key] = cfg[key]
-            save_config(cfg)
-            return fmt % cfg[key]
-        return f
-
-    def scale(factor):
-        def f():
-            cfg["mpp"] = round(min(0.6, max(0.03, cfg["mpp"] * factor)), 4)
-            pipe.cfg["mpp"] = pipe.world.mpp = cfg["mpp"]
-            save_config(cfg)
-            return "distance scale %.4f m per map px" % cfg["mpp"]
-        return f
-
-    def toggle_3d():
-        cfg["markers_3d"] = pipe.cfg["markers_3d"] = not cfg.get("markers_3d", False)
-        save_config(cfg)
-        return "3D markers on" if cfg["markers_3d"] else "radar only"
-
-    def cycle_radar():
-        steps = (0.0, 20.0, 40.0, 80.0)
-        cfg["radar_m"] = pipe.cfg["radar_m"] = steps[(steps.index(cfg["radar_m"]) + 1) % 4] if cfg.get("radar_m") in steps else 0.0
-        save_config(cfg)
-        return "radar range: auto (zooms in as you reach the chest)" if not cfg["radar_m"] else "radar range %.0f m" % cfg["radar_m"]
-
-    def toggle_up():
-        cfg["radar_up"] = pipe.cfg["radar_up"] = not cfg.get("radar_up", True)
-        save_config(cfg)
-        return "radar: ahead is up" if cfg["radar_up"] else "radar: north is up"
-
-    def toggle_fullmap():
-        cfg["fullmap"] = pipe.cfg["fullmap"] = not cfg.get("fullmap", True)
-        save_config(cfg)
-        if not cfg["fullmap"] and mapwatch and mapwatch[0].active:
-            mapwatch[0].stop()
-        return "chests on the full map: on" if cfg["fullmap"] else "chests on the full map: off (radar only)"
-
-    def cycle_fps():
-        cur = cfg.get("fps", 60)
-        nxt = next((f for f in FPS_STEPS if f > cur), FPS_STEPS[0])
-        cfg["fps"] = pipe.cfg["fps"] = nxt
-        save_config(cfg)
-        return "overlay refresh: %d fps" % nxt
-
-    def cycle_radar_spot():
-        spots = list(hud_mod.RADAR_SPOTS)
-        cur = cfg.get("radar_at")
-        nxt = spots[(spots.index(cur) + 1) % len(spots)] if cur in spots else spots[0]
-        cfg["radar_at"] = pipe.cfg["radar_at"] = nxt
-        save_config(cfg)
-        return "radar position: " + nxt
-
     scanner = []
     mapwatch = []
     finders = []
@@ -226,7 +169,7 @@ def main(overlay=Overlay, grabber=MssGrabber(), hotkeys=True, rect=None, seconds
 
     def open_map():
         """M (the game opens its full map): find the map on screen and draw the chests on it until it closes."""
-        if not cfg.get("fullmap", True):                 # switched off (Alt+M): the radar is all there is; M is just the game's
+        if not cfg.get("fullmap", True):                 # switched off in the settings: the radar is all there is; M is just the game's
             return
         if not mapwatch:
             from chestlab.fullmap import MapWatch
@@ -276,46 +219,63 @@ def main(overlay=Overlay, grabber=MssGrabber(), hotkeys=True, rect=None, seconds
         except Exception as e:
             say("map scan failed: %s" % e, 6)
 
-    if hotkeys:
+    if hotkeys:                                                                 # only the game's own keys: everything else is in the settings window
         keyboard.add_hotkey("esc", close_map)                                   # Esc closes the game's map too
         keyboard.add_hotkey("m", open_map)                                      # the game's full map: chests drawn on it
         keyboard.add_hotkey("shift", shift_back_to_radar, suppress=False)       # M by accident: Shift goes back to the radar (the key still reaches the game)
-        keyboard.add_hotkey("f12", act(pipe.cycle_route))                       # next route / off
-        keyboard.add_hotkey("f2", act(pipe.skip_route_chest))                   # the next route chest is not there
-        keyboard.add_hotkey("f5", act(pipe.reset_dug))                          # new match
-        keyboard.add_hotkey("f6", ov.toggle)                                    # hide / show
-        keyboard.add_hotkey("alt+f", act(cycle_fps))                            # overlay refresh rate: 60 / 90 / 120 / 144
-        keyboard.add_hotkey("alt+m", act(toggle_fullmap))                       # chests on the game's full map: on / off
-        keyboard.add_hotkey("f1", act(cycle_radar_spot))                        # radar position: default / each corner
-        keyboard.add_hotkey("f10", lambda: run.update(on=False))                # quit
-        if advanced:                                                            # calibration, 3D markers, learning spawns: not for normal use
-            keyboard.add_hotkey("f7", act(pipe.dig))
-            keyboard.add_hotkey("f8", act(pipe.undo_dig))
-            keyboard.add_hotkey("f3", act(nudge("fov", -1.0, 50, 120, "FOV %.0f")))
-            keyboard.add_hotkey("f4", act(nudge("fov", +1.0, 50, 120, "FOV %.0f")))
-            keyboard.add_hotkey("alt+left", act(nudge("yaw_off", -0.5, -30, 30, "turn offset %.1f deg")))
-            keyboard.add_hotkey("alt+right", act(nudge("yaw_off", +0.5, -30, 30, "turn offset %.1f deg")))
-            keyboard.add_hotkey("alt+up", act(nudge("pitch", -0.5, -40, 25, "camera pitch %.1f deg (markers moved up)")))
-            keyboard.add_hotkey("alt+down", act(nudge("pitch", +0.5, -40, 25, "camera pitch %.1f deg (markers moved down)")))
-            keyboard.add_hotkey("alt+page up", act(nudge("lead_ms", +5.0, 0, 150, "turn lead %.0f ms")))
-            keyboard.add_hotkey("alt+page down", act(nudge("lead_ms", -5.0, 0, 150, "turn lead %.0f ms")))
-            keyboard.add_hotkey("ctrl+page up", act(lambda: pipe.change_floor(+1)))
-            keyboard.add_hotkey("ctrl+page down", act(lambda: pipe.change_floor(-1)))
-            keyboard.add_hotkey("ctrl+right", act(nudge("show_m", +10.0, 20, 500, "marking chests within %.0f m")))
-            keyboard.add_hotkey("ctrl+left", act(nudge("show_m", -10.0, 20, 500, "marking chests within %.0f m")))
-            keyboard.add_hotkey("ctrl+m", act(toggle_3d))
-            keyboard.add_hotkey("ctrl+r", act(cycle_radar))
-            keyboard.add_hotkey("ctrl+n", act(toggle_up))
-            keyboard.add_hotkey("ctrl+up", act(scale(1.03)))
-            keyboard.add_hotkey("ctrl+down", act(scale(1 / 1.03)))
-            keyboard.add_hotkey("f9", lambda: threading.Thread(target=lambda: (save_debug(eng.mon, grabber), say("saved debug screenshot to the user folder")), daemon=True).start())
-            keyboard.add_hotkey("f11", lambda: threading.Thread(target=scan_map, daemon=True).start())
+
+    def set_value(key, value):
+        """A setting changed in the settings window: apply it now and save it."""
+        with eng.lock:
+            cfg[key] = pipe.cfg[key] = value
+            if key == "mpp":
+                pipe.world.mpp = value
+            save_config(cfg)
+            if key == "fullmap" and not value and mapwatch and mapwatch[0].active:
+                mapwatch[0].stop()
+        log("setting %s = %s" % (key, value))
+        return "Saved."
+
+    def do(action):
+        """A button in the settings window."""
+        def bg(fn):
+            threading.Thread(target=fn, daemon=True).start()
+            return "Working..."
+
+        if action == "quit":
+            run.update(on=False)
+            return "Quitting..."
+        if action == "hide":
+            ov.toggle()
+            return "Overlay shown." if ov.visible else "Overlay hidden."
+        if action == "debug_shot":
+            return bg(lambda: (save_debug(eng.mon, grabber), say("saved debug screenshot to the user folder")))
+        if action == "scan_map":
+            return bg(scan_map)
+        with eng.lock:
+            if action.startswith("route:"):
+                spec = action[6:]
+                msg = pipe.select_route(spec)
+                cfg["route"] = spec if spec not in ("0", "none", "off") else ""
+                save_config(cfg)
+            else:
+                msg = {"skip": pipe.skip_route_chest, "new_match": pipe.reset_dug, "dig": pipe.dig, "undo_dig": pipe.undo_dig}[action]()
+        say(msg)
+        return msg
+
+    win = None
+    if ask_route and hotkeys:                                                   # a real run: the settings window (starts minimised: never pops up over the game)
+        from chestlab import settings
+        win = settings.SettingsWindow(cfg, [r["name"] for r in pipe.routes], 0 if pipe.route is None else pipe.route + 1, set_value, do)
+        if not win.start():
+            log("settings window failed: %r" % (win.error,))
+            win = None
 
     seconds = seconds or float(os.environ.get("CHESTLAB_EXIT_AFTER", 0)) or None
     if seconds:
         threading.Timer(seconds, lambda: run.update(on=False)).start()
 
-    say("M map  ·  F12 route  ·  F2 skip chest  ·  F5 new match  ·  F6 hide  ·  F1 radar spot  ·  Alt+M map on/off  ·  F10 quit", 8)
+    say("Settings: open the ChestLab window from the taskbar" if win else "ChestLab running", 6)
     log("start; overlay visible to screenshots, monitor=%s" % {k: mon[k] for k in ("left", "top", "width", "height")})
     eng.start()
 
@@ -413,8 +373,10 @@ def main(overlay=Overlay, grabber=MssGrabber(), hotkeys=True, rect=None, seconds
             eng.close()
         if hotkeys:
             keyboard.unhook_all()
+        if win is not None:
+            win.close()
         ov.close()
-    return dict(frames=fps.n, fps=fps.v, render_ms=render_ms, work=work, state=st, ov=ov, eng=eng)
+    return dict(frames=fps.n, fps=fps.v, render_ms=render_ms, work=work, state=st, ov=ov, eng=eng, set_value=set_value, do=do)
 
 
 def _child_ping(q):
@@ -448,6 +410,18 @@ def selftest():
         hud.render(cv, dict(markers=[], yaw=None), "selftest", hex_bgr("#3dff8a"), "", t=0.1)
         return "ok"
     step("fonts + hud", draw)
+
+    def settings_ui():
+        import tkinter as tk
+        from chestlab.settings import SettingsPanel
+        r = tk.Tk()
+        r.withdraw()                                   # built but never shown
+        try:
+            SettingsPanel(r, load_config(), ["a"], 0, lambda k, v: "", lambda a: "")
+        finally:
+            r.destroy()
+        return "ok (not shown)"
+    step("settings window", settings_ui)
 
     def child():
         ctx = mp.get_context("spawn")

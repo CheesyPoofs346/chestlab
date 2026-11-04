@@ -186,7 +186,7 @@ def render(p, thumbs):
         d.text((x * S, y * S), t, font=font(kind, px), fill=col, anchor=anchor)
 
     text(PAD, 52, "Choose your route", "b", 30, TEXT)
-    text(PAD, 78, "Pick one, press Enter. You can switch in game with F12, and skip a missing chest with F2.", "r", 14, MUTED)
+    text(PAD, 78, "Pick one, press Enter. You can change it any time in the ChestLab settings window.", "r", 14, MUTED)
     if p.last is not None:
         text(W - PAD, 52, "last time: " + title_of(p.routes[p.last]), "r", 13, DIM, "rs")
     lay = layout(len(p.ids))
